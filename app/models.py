@@ -17,16 +17,22 @@ class User(Base):
     dropbox_secret = Column(String(15))
 
 
-class Jobs(Base):
+class Job(Base):
     __tablename__ = 'dropbox_jobs'
 
     job_id = Column(Integer, primary_key=True)
     file_id = Column(String(50))
     http_url = Column(String(100))
     method = Column(String(10))
-    user_id = Column(String(50))
+    user_id = Column(Integer)
     target_path = Column(String(200))
 
+    def __init__(self, file_id, http_url, method, user_id, target_path):
+        self.file_id = file_id
+        self.http_url = http_url
+        self.method = method
+        self.user_id = user_id
+        self.target_path = target_path
 
 class OnlineStore(Base):
     __tablename__ = 'dropbox_copy_ref_store'
@@ -52,14 +58,6 @@ class OnlineStore(Base):
 class History(Base):
     __tablename__ = 'dropbox_upload_history'
 
-    def __init__(self, job, target_path):
-        self.job_id = job.job_id
-        self.file_id = job.file_id
-        self.http_url = job.http_url
-        self.method = job.method
-        self.user_id = job.user_id
-        self.target_path = target_path
-
     history_id = Column(Integer, primary_key=True)
     job_id = Column(Integer)
     file_id = Column(String(50))
@@ -67,3 +65,11 @@ class History(Base):
     method = Column(String(10))
     user_id = Column(String(50))
     target_path = Column(String(200))
+
+    def __init__(self, job, target_path):
+        self.job_id = job.job_id
+        self.file_id = job.file_id
+        self.http_url = job.http_url
+        self.method = job.method
+        self.user_id = job.user_id
+        self.target_path = target_path
