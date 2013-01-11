@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column, Date, Integer, String
+from sqlalchemy import Column, Date, DateTime, Integer, String
 
 from app.database import Base
 
@@ -73,3 +73,23 @@ class History(Base):
         self.method = job.method
         self.user_id = job.user_id
         self.target_path = target_path
+
+
+class IVLEFile(Base):
+    __tablename__ = 'ivle_file'
+
+    ivle_file_id = Column(Integer, primary_key=True)
+    course_code = Column(String(16))
+    created_date = Column(DateTime())
+    file_id = Column(String(36))
+    file_path = Column(String(256))
+    file_type = Column(String(16))
+    friendly_path = Column(String(256))
+
+    def __init__(self, file):
+        self.course_code = file['CourseCode']
+        self.created_date = datetime.fromtimestamp(float(file['CreatedDate'][6:-2]) / 1000.0)
+        self.file_id = file['FileID']
+        self.file_path = file['FilePath']
+        self.file_type = file['FileType']
+        self.friendly_path = file['FriendlyPath']
