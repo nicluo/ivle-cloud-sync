@@ -52,14 +52,58 @@ class FileFetch():
 
 
 class FileProcessOverwrite():
-    def __init__(self):
-        pass
+    def __init__(self, dropbox_user_id, check_path):
+        self.check_user_id = dropbox_user_id
+        self.check_revision = 0
+        self.check_path = check_path
+        self.return_path = ""
+
+        if not self.target_file_exists():
+            self.return_path = self.check_path
+        else:
+            self.return_path = ""
 
     def target_file_exists(self):
-        pass
-
+        SH = SessionHandler(self.check_user_id)
+        meta = SH.client.metadata(self.check_path)
+        return False
+        
     def target_file_modified(self):
-        pass
+        #if the file is in online store, and copy ref validates - file was never modified by user.
+        SH = SessionHandler(self.check_user_id)
+        meta = SH.client.metadata(self.check_path)
+        try:
+            result = OnlineStore.query\
+                      .filter(OnlineStore.source_user_id == self.check_user_id)\
+                      .filter(OnlineStore.source_file_path == self.check_path)\
+                      .one()
+            self.check_revision = result.source_file_revision
+            if meta["revision"] == self.check_revision:
+                #the revision is consistent with the one we uploaded
+                #the user has not modified
+                print "FileProcessOverwrite: will overwrite file"
+                return False
+            else:
+                #revision is inconsistent
+                #user has modified
+                print "FileProcessOverwrite: will not overwrite file"
+                return True
+
+        except MultipleResultsFound, e:
+            #debug needed if this case is encountered
+            print e
+            
+        except NoResultFound, e:
+            #file isn't in online store - either
+            #1 we didn't upload it
+            #2 it was already modified by the user
+            #result - do not upload
+            print e
+            return True
+
+    def get_target_file_path(self):
+        return self.return_path
+    
 
 
 class FileCopier():
