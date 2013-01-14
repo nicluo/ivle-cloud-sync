@@ -6,6 +6,8 @@ from app.database import db_session
 from app.models import User, Job, OnlineStore, History
 from dropbox import client, rest, session
 
+from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
+
 APP_KEY = 'br678pfbbwqbi1y'
 APP_SECRET = '***REMOVED***'
 ACCESS_TYPE = 'app_folder'
@@ -45,7 +47,7 @@ class FileFetch():
             with open('cache/' + self.job.target_path) as f:
                 f.close()
                 os.remove('cache/' + self.job.target_path)
-                print "WARNING: have to delete existing file."
+                print "CACHE WARNING: have to delete existing file."
         except IOError as e:
             pass
         os.renames('cache/tmp', 'cache/' + self.job.target_path)
@@ -55,51 +57,69 @@ class FileProcessOverwrite():
     def __init__(self, dropbox_user_id, check_path):
         self.check_user_id = dropbox_user_id
         self.check_revision = 0
-        self.check_path = check_path
+        self.check_path = "/" + check_path
         self.return_path = ""
 
         if not self.target_file_exists():
+            print "FileProcessOverwrite - target file doesnt exist, no need to overwrite"
             self.return_path = self.check_path
         else:
+            print "FileProcessOverwrite - target file exists"
+            if self.target_file_modified():
+                print "FileProcessOverwrite - do not overwrite"
+            else:
+                print "FileProcessOverwrite - overwrite"
             self.return_path = ""
 
     def target_file_exists(self):
         SH = SessionHandler(self.check_user_id)
-        meta = SH.client.metadata(self.check_path)
-        return False
+        try:
+            meta = SH.client.metadata(self.check_path)
+            if unicode('is_deleted') in meta.keys():
+                if meta[unicode("is_deleted")]:
+                    return False
+            return True
+        except rest.ErrorResponse as e:
+            print e
+            return False
+
         
     def target_file_modified(self):
         #if the file is in online store, and copy ref validates - file was never modified by user.
         SH = SessionHandler(self.check_user_id)
         meta = SH.client.metadata(self.check_path)
+        print self.check_path
         try:
             result = OnlineStore.query\
                       .filter(OnlineStore.source_user_id == self.check_user_id)\
                       .filter(OnlineStore.source_file_path == self.check_path)\
                       .one()
+                      
             self.check_revision = result.source_file_revision
             if meta["revision"] == self.check_revision:
                 #the revision is consistent with the one we uploaded
                 #the user has not modified
-                print "FileProcessOverwrite: will overwrite file"
+                print "FileProcessOverwrite: file not modified by user"
                 return False
             else:
                 #revision is inconsistent
                 #user has modified
-                print "FileProcessOverwrite: will not overwrite file"
+                print "FileProcessOverwrite: file modified by user"
                 return True
-
-        except MultipleResultsFound, e:
-            #debug needed if this case is encountered
-            print e
             
-        except NoResultFound, e:
+        except MultipleResultsFound as e:
+            #Shouldn't reach here
+            #TODO: delete entries
+            print "FileProcessOverwrite: Error - duplicate file entry"
+            return True
+        
+        except NoResultFound as e:
             #file isn't in online store - either
             #1 we didn't upload it
             #2 it was already modified by the user
             #result - do not upload
-            print e
-            return True
+            print "FileProcessOverwrite: no file entry found"
+            return False
 
     def get_target_file_path(self):
         return self.return_path
@@ -109,6 +129,7 @@ class FileProcessOverwrite():
 class FileCopier():
     def __init__(self, job):
         self.job = job
+        FileProcessOverwrite(job.user_id, job.target_path)
         self.SH = SessionHandler(1)
         self.cli = self.SH.client
         for entry in self.fetch_copy_ref_db(self.job.file_id):
@@ -138,16 +159,15 @@ class FileCopier():
         self.log_file_copy(response["path"])
 
     def upload_copy_ref(self, copy_ref_entry):
-        #TODO: check for existing file
         try:
-            response = self.cli.metadata(self.job.target_path)
-            print "Copy-Ref-Upload: File exists in target folder"
-            print response
+            meta = self.cli.metadata(self.job.target_path)
+            if unicode('is_deleted') in meta.keys():
+                if not meta[unicode("is_deleted")]:
+                    print "Copy-Ref-Upload: Error - file exists in target folder"
         except rest.ErrorResponse as e:
             print e
             print "file doesnt exist. go ahead upload"
-            response = self.cli.add_copy_ref(copy_ref_entry.copy_ref,
-                self.job.target_path)
+            response = self.cli.add_copy_ref(copy_ref_entry, self.job.target_path)
             print response
             self.put_into_copy_ref_store(response)
             self.log_file_copy(response["path"])
