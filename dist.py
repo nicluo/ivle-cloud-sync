@@ -44,13 +44,13 @@ class FileFetch():
         out.close()
         print self.job.target_path + " downloaded."
         try:
-            with open('cache/' + self.job.target_path) as f:
+            with open('cache/' + self.job.file_id) as f:
                 f.close()
-                os.remove('cache/' + self.job.target_path)
+                os.remove('cache/' + self.job.file_id)
                 print "CACHE WARNING: have to delete existing file."
         except IOError as e:
             pass
-        os.renames('cache/tmp', 'cache/' + self.job.target_path)
+        os.renames('cache/tmp', 'cache/' + self.job.file_id)
 
 
 class FileProcessOverwrite():
@@ -60,6 +60,10 @@ class FileProcessOverwrite():
         self.check_path = "/" + check_path
         self.return_path = ""
 
+        self.find_available_path()
+
+    def find_available_path(self):
+        print self.check_path
         if not self.target_file_exists():
             print "FileProcessOverwrite - target file doesnt exist, no need to overwrite"
             self.return_path = self.check_path
@@ -67,11 +71,17 @@ class FileProcessOverwrite():
             print "FileProcessOverwrite - target file exists"
             if self.target_file_modified():
                 print "FileProcessOverwrite - do not overwrite"
+                self.make_new_path()
+                self.find_available_path()
             else:
                 print "FileProcessOverwrite - overwrite"
+                self.return_path = self.check_path
                 self.delete_target_file_path(self.check_path)
-            self.return_path = ""
 
+    def make_new_path(self):
+        print self.check_path
+        self.check_path = self.check_path + " [renamed due to conflict: 1]"        
+    
     def target_file_exists(self):
         SH = SessionHandler(self.check_user_id)
         try:
@@ -130,14 +140,16 @@ class FileProcessOverwrite():
         print "FileProcessOverwrite - file deleted"
 
     def get_target_file_path(self):
-        return self.return_path
+        return self.return_path[1:]
     
 
 
 class FileCopier():
     def __init__(self, job):
         self.job = job
-        FileProcessOverwrite(job.user_id, job.target_path)
+        FPO = FileProcessOverwrite(job.user_id, job.target_path)
+        self.processed_path = FPO.get_target_file_path()
+        
         self.SH = SessionHandler(1)
         self.cli = self.SH.client
         for entry in self.fetch_copy_ref_db(self.job.file_id):
@@ -158,8 +170,8 @@ class FileCopier():
     def upload_file(self):
         print "Copy: Uploading Normally."
         FileFetch(self.job)
-        f = open("cache/" + self.job.target_path, 'rb')
-        response = self.cli.put_file(self.job.target_path, f)
+        f = open("cache/" + self.job.file_id, 'rb')
+        response = self.cli.put_file(self.processed_path, f)
         print response
         f.close()
 
@@ -168,20 +180,20 @@ class FileCopier():
 
     def upload_copy_ref(self, copy_ref_entry):
         try:
-            meta = self.cli.metadata(self.job.target_path)
+            meta = self.cli.metadata(self.processed_path)
             if unicode('is_deleted') in meta.keys():
                 if not meta[unicode("is_deleted")]:
                     print "Copy-Ref-Upload: Error - file exists in target folder"
                 else:
                     print "file doesnt exist (deleted). go ahead upload"
-                    response = self.cli.add_copy_ref(copy_ref_entry, self.job.target_path)
+                    response = self.cli.add_copy_ref(copy_ref_entry, self.processed_path)
                     print response
                     self.put_into_copy_ref_store(response)
                     self.log_file_copy(response["path"])
         except rest.ErrorResponse as e:
             print e
             print "file doesnt exist. go ahead upload"
-            response = self.cli.add_copy_ref(copy_ref_entry, self.job.target_path)
+            response = self.cli.add_copy_ref(copy_ref_entry, self.processed_path)
             print response
             self.put_into_copy_ref_store(response)
             self.log_file_copy(response["path"])
