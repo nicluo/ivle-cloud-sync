@@ -69,6 +69,7 @@ class FileProcessOverwrite():
                 print "FileProcessOverwrite - do not overwrite"
             else:
                 print "FileProcessOverwrite - overwrite"
+                self.delete_target_file_path(self.check_path)
             self.return_path = ""
 
     def target_file_exists(self):
@@ -121,6 +122,13 @@ class FileProcessOverwrite():
             print "FileProcessOverwrite: no file entry found"
             return False
 
+    def delete_target_file_path(self, path):
+        SH = SessionHandler(self.check_user_id)
+        print "FileProcessOverwrite - deleting file..."
+        meta = SH.client.file_delete(path)
+        print meta
+        print "FileProcessOverwrite - file deleted"
+
     def get_target_file_path(self):
         return self.return_path
     
@@ -164,6 +172,12 @@ class FileCopier():
             if unicode('is_deleted') in meta.keys():
                 if not meta[unicode("is_deleted")]:
                     print "Copy-Ref-Upload: Error - file exists in target folder"
+                else:
+                    print "file doesnt exist (deleted). go ahead upload"
+                    response = self.cli.add_copy_ref(copy_ref_entry, self.job.target_path)
+                    print response
+                    self.put_into_copy_ref_store(response)
+                    self.log_file_copy(response["path"])
         except rest.ErrorResponse as e:
             print e
             print "file doesnt exist. go ahead upload"
