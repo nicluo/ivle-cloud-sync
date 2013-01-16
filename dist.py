@@ -58,6 +58,8 @@ class FileProcessOverwrite():
         self.check_user_id = dropbox_user_id
         self.check_revision = 0
         self.check_path = "/" + check_path
+        #self.check_path_original used for generating new renames
+        self.check_path_original = self.check_path
         self.return_path = ""
 
         self.conflict_num = 0
@@ -80,7 +82,7 @@ class FileProcessOverwrite():
                 self.delete_target_file_path(self.check_path)
 
     def make_new_path(self):
-        title, ext = os.path.splitext(self.check_path)
+        title, ext = os.path.splitext(self.check_path_original)
         self.conflict_num += 1
         self.check_path = title + " [renamed due to conflict: "\
                             + unicode(self.conflict_num)\
@@ -152,6 +154,7 @@ class FileProcessOverwrite():
 class FileCopier():
     def __init__(self, job):
         self.job = job
+        self.job.status = 1
         FPO = FileProcessOverwrite(job.user_id, job.target_path)
         self.processed_path = FPO.get_target_file_path()
         
@@ -241,7 +244,9 @@ class FileCopier():
 
 class Worker():
     def __init__(self):
-        for entry in Job.query.all():
+        for entry in Job.query\
+            .filter(Job.status == 0)\
+            .all():
             FileCopier(entry)
 
 

@@ -26,6 +26,7 @@ class Job(Base):
     method = Column(String(10))
     user_id = Column(Integer)
     target_path = Column(String(200))
+    status = Column(Integer)
 
     def __init__(self, file_id, http_url, method, user_id, target_path):
         self.file_id = file_id
@@ -33,6 +34,7 @@ class Job(Base):
         self.method = method
         self.user_id = user_id
         self.target_path = target_path
+        self.status = 0
 
 class OnlineStore(Base):
     __tablename__ = 'dropbox_copy_ref_store'
