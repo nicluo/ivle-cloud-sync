@@ -60,6 +60,7 @@ class FileProcessOverwrite():
         self.check_path = "/" + check_path
         self.return_path = ""
 
+        self.conflict_num = 0
         self.find_available_path()
 
     def find_available_path(self):
@@ -79,8 +80,12 @@ class FileProcessOverwrite():
                 self.delete_target_file_path(self.check_path)
 
     def make_new_path(self):
-        print self.check_path
-        self.check_path = self.check_path + " [renamed due to conflict: 1]"        
+        title, ext = os.path.splitext(self.check_path)
+        self.conflict_num += 1
+        self.check_path = title + " [renamed due to conflict: "\
+                            + unicode(self.conflict_num)\
+                            + "]" \
+                            + ext
     
     def target_file_exists(self):
         SH = SessionHandler(self.check_user_id)
@@ -130,7 +135,7 @@ class FileProcessOverwrite():
             #2 it was already modified by the user
             #result - do not upload
             print "FileProcessOverwrite: no file entry found"
-            return False
+            return True
 
     def delete_target_file_path(self, path):
         SH = SessionHandler(self.check_user_id)
