@@ -145,6 +145,18 @@ class FileProcessOverwrite():
         meta = SH.client.file_delete(path)
         print meta
         print "FileProcessOverwrite - file deleted"
+        try:
+            result = OnlineStore.query\
+                      .filter(OnlineStore.source_user_id == self.check_user_id)\
+                      .filter(OnlineStore.source_file_path == self.check_path)\
+                      .one()
+            db_session.delete(result)
+            db_session.commit()
+            print "FileProcessOverwrite - file entry deleted"
+        except MultipleResultsFound as e:
+            pass
+        except NoResultFound as e:
+            pass
 
     def get_target_file_path(self):
         return self.return_path[1:]
