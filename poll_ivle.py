@@ -10,11 +10,12 @@ class Worker():
     def process(self):
        modules = self.client.get('Modules', Duration=0, IncludeAllInfo='false')
        for result in modules['Results']:
+           courseCode = result['CourseCode']
            if result['isActive'] == 'Y':
                workbins = self.client.get('Workbins', CourseID=result['ID'], Duration=0)
                for workbin in workbins['Results']:
                    title = workbin['Title']
-                   self.exploreFolders(workbin, [title])
+                   self.exploreFolders(workbin, [courseCode + ' ' + title])
 
     def exploreFolders(self, json, parents):
         for folder in json['Folders']:
