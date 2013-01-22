@@ -19,16 +19,15 @@ class Worker():
     def exploreFolders(self, json, parents):
         for folder in json['Folders']:
             folderName = folder['FolderName']
-            parents.append(folderName)
             for file in folder['Files']:
                 fileName = file['FileName']
                 fileID = file['ID']
-                filePath = '/'.join(parents + [fileName])
+                filePath = '/'.join(parents + [folderName] + [fileName])
                 fileURL = self.client.build_download_url(fileID)
                 db_session.add(Job(fileID, fileURL, 'http', self.user.user_id,
                     filePath))
                 db_session.commit()
-            self.exploreFolders(folder, parents[:])
+            self.exploreFolders(folder, parents + [folderName])
 
 def main():
     for user in User.query.all():
