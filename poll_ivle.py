@@ -1,11 +1,39 @@
-import requests
-
 from app.database import db_session
-from app.models import IVLEFile
+from app.models import IVLEFile, User, Job
+from app.ivle import IvleClient
 
-ivle_uid = 'u0906931'
-#r = requests.get('https://ivle.nus.edu.sg/jobs/sync_file.ashx?user=' + ivle_uid)
-r = requests.get('http://nusmods.com/jobs/a0071932')
-for file in r.json():
-    db_session.add(IVLEFile(file))
-    db_session.commit()
+class Worker():
+    def __init__(self, user):
+       self.user = user
+       self.client = IvleClient(user.ivle_token)
+
+    def process(self):
+       modules = self.client.get('Modules', Duration=0, IncludeAllInfo='false')
+       for result in modules['Results']:
+           if result['isActive'] == 'Y':
+               workbins = self.client.get('Workbins', CourseID=result['ID'], Duration=0)
+               for workbin in workbins['Results']:
+                   title = workbin['Title']
+                   self.exploreFolders(workbin, [title])
+
+    def exploreFolders(self, json, parents):
+        for folder in json['Folders']:
+            folderName = folder['FolderName']
+            parents.append(folderName)
+            for file in folder['Files']:
+                fileName = file['FileName']
+                fileID = file['ID']
+                filePath = '/'.join(parents + [fileName])
+                fileURL = self.client.build_download_url(fileID)
+                db_session.add(Job(fileID, fileURL, 'http', self.user.user_id,
+                    filePath))
+                db_session.commit()
+            self.exploreFolders(folder, parents[:])
+
+def main():
+    for user in User.query.all():
+        worker = Worker(user)
+        worker.process()
+
+if __name__ == '__main__':
+    main()

@@ -4,18 +4,26 @@ from urllib import urlencode
 LAPI_URL = 'https://ivle.nus.edu.sg/api/Lapi.svc/'
 IVLE_LAPI_KEY = '***REMOVED***'
 
-def build_authorize_url(callback_url):
-    return ('https://ivle.nus.edu.sg/api/login/?' +
-            urlencode({'apikey': IVLE_LAPI_KEY, 'url': callback_url}))
-
-
-class Client:
+class IvleClient:
     def __init__(self, auth_token):
         self.api_key = IVLE_LAPI_KEY
         self.auth_token = auth_token
 
-    def get(self, method, **params):
+    def build_params(self, params):
         token_key = 'AuthToken' if len(params) else 'Token'
         params['APIKey'] = self.api_key
         params[token_key] = self.auth_token
-        return get(LAPI_URL + method, params=params).json()
+        return params
+
+    def get(self, method, **params):
+        return get(LAPI_URL + method, params=self.build_params(params)).json()
+
+    def build_download_url(self, id):
+        params = {'ID': id, 'target': 'workbin'}
+        return ('https://ivle.nus.edu.sg/api/downloadfile.ashx?' +
+                urlencode(self.build_params(params)))
+
+    @staticmethod
+    def build_authorize_url(callback_url):
+        return ('https://ivle.nus.edu.sg/api/login/?' +
+                urlencode({'apikey': IVLE_LAPI_KEY, 'url': callback_url}))

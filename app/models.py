@@ -16,16 +16,24 @@ class User(Base):
     dropbox_key = Column(String(15))
     dropbox_secret = Column(String(15))
 
+    def __init__(self, ivle_uid, ivle_email, ivle_name, ivle_token,
+                 dropbox_key, dropbox_secret):
+        self.ivle_uid = ivle_uid
+        self.ivle_email = ivle_email
+        self.ivle_name = ivle_name
+        self.ivle_token = ivle_token
+        self.dropbox_key = dropbox_key
+        self.dropbox_secret = dropbox_secret
 
 class Job(Base):
     __tablename__ = 'dropbox_jobs'
 
     job_id = Column(Integer, primary_key=True)
-    file_id = Column(String(50))
-    http_url = Column(String(100))
-    method = Column(String(10))
+    file_id = Column(String(36))
+    http_url = Column(String(1024))
+    method = Column(String(4))
     user_id = Column(Integer)
-    target_path = Column(String(200))
+    target_path = Column(String(256))
     status = Column(Integer)
 
     def __init__(self, file_id, http_url, method, user_id, target_path):
@@ -62,11 +70,11 @@ class History(Base):
 
     history_id = Column(Integer, primary_key=True)
     job_id = Column(Integer)
-    file_id = Column(String(50))
-    http_url = Column(String(100))
-    method = Column(String(10))
-    user_id = Column(String(50))
-    target_path = Column(String(200))
+    file_id = Column(String(36))
+    http_url = Column(String(1024))
+    method = Column(String(4))
+    user_id = Column(Integer)
+    target_path = Column(String(256))
 
     def __init__(self, job, target_path):
         self.job_id = job.job_id

@@ -1,7 +1,7 @@
 from dropbox.session import DropboxSession
 from flask import Flask, g, redirect, render_template, request, session, url_for
 
-import ivle
+from app.ivle import IvleClient
 from app.database import db_session
 from app.models import User
 
@@ -29,13 +29,13 @@ def index():
 @app.route('/auth/ivle/login')
 def ivle_login():
     return redirect(
-        ivle.build_authorize_url(url_for('ivle_callback', _external=True)))
+        IvleClient.build_authorize_url(url_for('ivle_callback', _external=True)))
 
 
 @app.route('/auth/ivle/callback')
 def ivle_callback():
     ivle_token = request.args.get('token')
-    client = ivle.Client(ivle_token)
+    client = IvleClient(ivle_token)
     ivle_uid = client.get('UserID_Get')
     user = User.query.filter(User.ivle_uid == ivle_uid).first()
     if user:
