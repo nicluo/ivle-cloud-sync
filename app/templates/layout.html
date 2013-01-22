@@ -7,10 +7,20 @@
     <meta name="description" content="Sync your IVLE Workbin files with Dropbox automatically.<">
 
     <link href="{{ url_for('static', filename='css/bootstrap.css') }}" rel="stylesheet">
-    <link href="{{ url_for('static', filename='css/bootstrap-responsive.css') }}" rel="stylesheet">
+    <!--<link href="{{ url_for('static', filename='css/bootstrap-responsive.css') }}" rel="stylesheet">-->
   </head>
 
   <body>
+    <div class="navbar">
+      <div class="navbar-inner">
+        <a class="brand" href="/">IVLE Cloud Sync</a>
+        <ul class="nav">
+          <li><a href="/">Home</a></li>
+          <li><a href="#">Log</a></li>
+          <li><a href="#">Settings</a></li>
+        </ul>
+      </div>
+    </div>
     {% for message in get_flashed_messages() %}
       <div class="alert">
         <button type="button" class="close" data-dismiss="alert">&times;</button>
@@ -24,7 +34,7 @@
       <hr>
 
       <div class="footer">
-        <p>Built by Beng & Nic.</p>
+        <!--<p>Built by Beng & Nic.</p>-->
       </div>
     </div>
   </body>
