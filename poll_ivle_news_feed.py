@@ -17,10 +17,14 @@ class Worker():
             if result['isActive'] == 'Y':
                 announcements = self.client.get('Announcements', CourseID=result['ID'], Duration=1, TitleOnly=False)
                 for announcement in announcements['Results']:
+                    print "---announce---"
+                    print announcement["ID"]
                     print announcement["Title"]
                     print announcement["Creator"]["Name"]
                     print datetime.fromtimestamp(int(announcement["CreatedDate"][6:16]))
                     print announcement["Description"]
+                    #db_session.add(IVLEAnnouncement(announcement, courseCode, self.user.user_id))
+                    #db_session.commit()
                 forums = self.client.get('Forums', CourseID=result['ID'], Duration=0, IncludeThreads=True, TitleOnly=False)
                 for forum in forums['Results']:
                     print forum.keys()

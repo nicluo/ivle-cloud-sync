@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column, Date, DateTime, Integer, String
+from sqlalchemy import Column, Date, DateTime, Integer, String, Boolean
 
 from app.database import Base
 
@@ -103,3 +103,53 @@ class IVLEFile(Base):
         self.file_path = file['FilePath']
         self.file_type = file['FileType']
         self.friendly_path = file['FriendlyPath']
+
+
+class IVLEAnnouncement(Base):
+    __tablename__ = 'ivle_announcement'
+
+    ivle_announcement_id = Column(Integer, primary_key=True)
+    user_id = Column(Integer)
+    course_code = Column(String(16))
+    created_date = Column(DateTime())
+    announcement_creator = Column(String(256))
+    announcement_title = Column(String(256))
+    announcement_body = Column(String(2048))
+    modified_timestamp = Column(DateTime())
+    is_deleted = Column(Boolean)
+
+    def __init__(self, announcement, course_code, user_id):
+        self.course_code = course_code
+        self.created_date = datetime.fromtimestamp(int(announcement["CreatedDate"][6:16]))
+        self.ivle_announcement_id = announcement['ID']
+        self.announcement_creator = announcement["Creator"]["Name"]
+        self.announcement_title =  announcement["Title"]
+        self.announcement_body = announcement["Description"]
+        self.modified_timestamp = datetime.now()
+        self.is_deleted = False
+
+
+class IVLEForum(Base):
+    __tablename__ = 'ivle_forum'
+
+    ivle_forum_id = Column(Integer, primary_key=True)
+    user_id = Column(Integer)
+    course_code = Column(String(16))
+    created_date = Column(DateTime())
+    post_creator = Column(String(256))
+    post_title = Column(String(256))
+    post_body = Column(String(2048))
+    parent_id = Column(Integer)
+    modified_timestamp = Column(DateTime())
+    is_deleted = Column(Boolean)
+
+    def __init__(self, post, course_code, user_id, parent_id = 0):
+        self.course_code = course_code
+        self.created_date = datetime.fromtimestamp(int(announcement["CreatedDate"][6:16]))
+        self.ivle_forum_id = post['ID']
+        self.announcement_creator = psot["Creator"]["Name"]
+        self.announcement_title =  post["Title"]
+        self.announcement_body = post["Description"]
+        self.modified_timestamp = datetime.now()
+        self.parent_id = parent_id
+        self.is_deleted = False
