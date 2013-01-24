@@ -201,8 +201,8 @@ class FileCopier():
     def upload_copy_ref(self, copy_ref_entry):
         try:
             meta = self.cli.metadata(self.processed_path)
-            if unicode('is_deleted') in meta.keys():
-                if not meta[unicode("is_deleted")]:
+            if "is_deleted" in meta.keys():
+                if not meta["is_deleted"]:
                     print "Copy-Ref-Upload: Error - file exists in target folder"
                 else:
                     print "file doesnt exist (deleted). go ahead upload"
