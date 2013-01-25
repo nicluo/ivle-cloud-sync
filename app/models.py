@@ -108,7 +108,8 @@ class IVLEFile(Base):
 class IVLEAnnouncement(Base):
     __tablename__ = 'ivle_announcement'
 
-    ivle_announcement_id = Column(Integer, primary_key=True)
+    announcement_id = Column(Integer, primary_key=True)
+    ivle_id = Column(String(36))
     user_id = Column(Integer)
     course_code = Column(String(16))
     created_date = Column(DateTime())
@@ -119,9 +120,10 @@ class IVLEAnnouncement(Base):
     is_deleted = Column(Boolean)
 
     def __init__(self, announcement, course_code, user_id):
+        self.user_id = user_id
         self.course_code = course_code
         self.created_date = datetime.fromtimestamp(int(announcement["CreatedDate"][6:16]))
-        self.ivle_announcement_id = announcement['ID']
+        self.ivle_id = announcement['ID']
         self.announcement_creator = announcement["Creator"]["Name"]
         self.announcement_title =  announcement["Title"]
         self.announcement_body = announcement["Description"]
@@ -132,7 +134,8 @@ class IVLEAnnouncement(Base):
 class IVLEForum(Base):
     __tablename__ = 'ivle_forum'
 
-    ivle_forum_id = Column(Integer, primary_key=True)
+    forum_id = Column(Integer, primary_key=True)
+    ivle_id = Column(String(36))
     user_id = Column(Integer)
     course_code = Column(String(16))
     created_date = Column(DateTime())
@@ -146,7 +149,7 @@ class IVLEForum(Base):
     def __init__(self, post, course_code, user_id, parent_id = 0):
         self.course_code = course_code
         self.created_date = datetime.fromtimestamp(int(announcement["CreatedDate"][6:16]))
-        self.ivle_forum_id = post['ID']
+        self.ivle_id = post['ID']
         self.announcement_creator = psot["Creator"]["Name"]
         self.announcement_title =  post["Title"]
         self.announcement_body = post["Description"]

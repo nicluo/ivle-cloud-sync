@@ -1,5 +1,5 @@
 from app.database import db_session
-from app.models import IVLEFile, User, Job
+from app.models import IVLEFile, User, Job, IVLEAnnouncement
 from app.ivle import IvleClient
 from datetime import datetime
 from time import time
@@ -15,7 +15,7 @@ class Worker():
         for result in modules['Results']:
             courseCode = result['CourseCode']
             if result['isActive'] == 'Y':
-                announcements = self.client.get('Announcements', CourseID=result['ID'], Duration=1, TitleOnly=False)
+                announcements = self.client.get('Announcements', CourseID=result['ID'], Duration=0, TitleOnly=False)
                 for announcement in announcements['Results']:
                     print "---announce---"
                     print announcement["ID"]
@@ -23,9 +23,10 @@ class Worker():
                     print announcement["Creator"]["Name"]
                     print datetime.fromtimestamp(int(announcement["CreatedDate"][6:16]))
                     print announcement["Description"]
-                    #db_session.add(IVLEAnnouncement(announcement, courseCode, self.user.user_id))
-                    #db_session.commit()
+                    db_session.add(IVLEAnnouncement(announcement, courseCode, self.user.user_id))
+                    db_session.commit()
                 forums = self.client.get('Forums', CourseID=result['ID'], Duration=0, IncludeThreads=True, TitleOnly=False)
+                print "---forum---"
                 for forum in forums['Results']:
                     print forum.keys()
                     print forum["Title"]
@@ -34,6 +35,7 @@ class Worker():
                         print heading["Title"]
                         for thread in heading["Threads"]:
                             print thread.keys()
+                            print thread["ID"]
                             print thread["isNewPost"]
                             print thread["isRead"]
                             print thread["PostTitle"]
@@ -41,7 +43,7 @@ class Worker():
                             print datetime.fromtimestamp(int(thread["PostDate"][6:16]))
                             print thread["PostBody"]
                             #print thread
-                            #print thread["Threads"]
+                            print thread["Threads"]
                 workbins = self.client.get('Workbins', CourseID=result['ID'], Duration=0)
                 for workbin in workbins['Results']:
                     title = workbin['Title']
