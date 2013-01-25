@@ -85,6 +85,20 @@ class History(Base):
         self.target_path = target_path
 
 
+class IVLEModule(Base):
+    __tablename__ = 'ivle_file'
+    module_id = Column(Integer, primary_key=True)
+    user_id = Column(Integer)
+    course_code = Column(String(16))
+    course_id = Column(String(36))
+    checked = Column(DateTime())
+
+    def __init__(self, module, user_id):
+        self.user_id = user_id
+        self.course_code = module["course_code"]
+        self.course_id = module["ID"]
+        self.checked = datetime.now()
+
 class IVLEFile(Base):
     __tablename__ = 'ivle_file'
 
