@@ -11,8 +11,9 @@ class Worker():
         self.client = IvleClient(user.ivle_token)
 
     def process(self):
-        #fetch modules from db
+        db_user_modules = IVLEModule.query.filter(IVLEModule.user_id == self.user.user_id).all()
         modules = self.client.get('Modules', Duration=0, IncludeAllInfo='false')
+
         for result in modules['Results']:
             courseCode = result['CourseCode']
             if result['isActive'] == 'Y':
@@ -20,7 +21,6 @@ class Worker():
                 db_session.add(IVLEModule(result, self.user.user_id))
                 db_session.commit()
                 #otherwise, update checked time
-                pass
 
 def main():
     for user in User.query.all():

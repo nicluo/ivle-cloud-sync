@@ -86,7 +86,7 @@ class History(Base):
 
 
 class IVLEModule(Base):
-    __tablename__ = 'ivle_file'
+    __tablename__ = 'ivle_module'
     module_id = Column(Integer, primary_key=True)
     user_id = Column(Integer)
     course_code = Column(String(16))
@@ -95,7 +95,7 @@ class IVLEModule(Base):
 
     def __init__(self, module, user_id):
         self.user_id = user_id
-        self.course_code = module["course_code"]
+        self.course_code = module["CourseCode"]
         self.course_id = module["ID"]
         self.checked = datetime.now()
 
