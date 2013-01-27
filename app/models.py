@@ -128,12 +128,13 @@ class IVLEAnnouncement(Base):
     announcement_id = Column(Integer, primary_key=True)
     ivle_id = Column(String(36))
     user_id = Column(Integer)
-    course_code = Column(String(16))
+    course_code = Column(String(32))
     created_date = Column(DateTime())
     announcement_creator = Column(String(256))
     announcement_title = Column(String(256))
     announcement_body = Column(String(2048))
     modified_timestamp = Column(DateTime())
+    is_read = Column(Boolean)
     is_deleted = Column(Boolean)
 
     def __init__(self, announcement, course_code, user_id):
@@ -144,12 +145,36 @@ class IVLEAnnouncement(Base):
         self.announcement_creator = announcement["Creator"]["Name"]
         self.announcement_title =  announcement["Title"]
         self.announcement_body = announcement["Description"]
+        self.is_read = announcement["isRead"]
+        self.modified_timestamp = datetime.now()
+        self.is_deleted = False
+
+class IVLEForumHeading(Base):
+    __tablename__ = 'ivle_forum_heading'
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer)
+    course_code = Column(String(32))
+    ivle_forum_id = Column(String(36))
+    ivle_heading_id = Column(String(36))
+    forum_title = Column(String(200))
+    heading_title = Column(String(200))
+    modified_timestamp = Column(DateTime())
+    is_deleted = Column(Boolean)
+
+    def __init__(self, forum, heading, course_code, user_id):
+        self.user_id = user_id
+        self.course_code = course_code
+        self.ivle_forum_id = forum['ID']
+        self.ivle_heading_id = heading['ID']
+        self.forum_title = forum['Title']
+        self.heading_title = heading['Title']
         self.modified_timestamp = datetime.now()
         self.is_deleted = False
 
 
-class IVLEForum(Base):
-    __tablename__ = 'ivle_forum'
+class IVLEForumThread(Base):
+    __tablename__ = 'ivle_forum_thread'
 
     forum_id = Column(Integer, primary_key=True)
     ivle_id = Column(String(36))
