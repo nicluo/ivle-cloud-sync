@@ -75,6 +75,7 @@ class History(Base):
     method = Column(String(4))
     user_id = Column(Integer)
     target_path = Column(String(256))
+    upload_timestamp = Column(DateTime)
 
     def __init__(self, job, target_path):
         self.job_id = job.job_id
@@ -83,6 +84,7 @@ class History(Base):
         self.method = job.method
         self.user_id = job.user_id
         self.target_path = target_path
+        self.upload_timestamp = datetime.now()
 
 
 class IVLEModule(Base):
