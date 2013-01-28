@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column, Date, DateTime, Integer, String, Boolean
+from sqlalchemy import Column, Date, DateTime, Integer, String, Boolean, Text
 
 from app.database import Base
 
@@ -132,7 +132,7 @@ class IVLEAnnouncement(Base):
     created_date = Column(DateTime())
     announcement_creator = Column(String(256))
     announcement_title = Column(String(256))
-    announcement_body = Column(String(2048))
+    announcement_body = Column(Text)
     modified_timestamp = Column(DateTime())
     is_read = Column(Boolean)
     is_deleted = Column(Boolean)
@@ -176,25 +176,26 @@ class IVLEForumHeading(Base):
 class IVLEForumThread(Base):
     __tablename__ = 'ivle_forum_thread'
 
-    forum_id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True)
     ivle_id = Column(String(36))
     user_id = Column(Integer)
-    course_code = Column(String(16))
     created_date = Column(DateTime())
     post_creator = Column(String(256))
     post_title = Column(String(256))
-    post_body = Column(String(2048))
-    parent_id = Column(Integer)
+    post_body = Column(Text)
+    parent_heading_id = Column(Integer)
+    parent_thread_id = Column(Integer)
     modified_timestamp = Column(DateTime())
     is_deleted = Column(Boolean)
 
-    def __init__(self, post, course_code, user_id, parent_id = 0):
-        self.course_code = course_code
-        self.created_date = datetime.fromtimestamp(int(announcement["CreatedDate"][6:16]))
-        self.ivle_id = post['ID']
-        self.announcement_creator = psot["Creator"]["Name"]
-        self.announcement_title =  post["Title"]
-        self.announcement_body = post["Description"]
+    def __init__(self, thread, user_id, parent_heading_id, parent_thread_id):
+        self.created_date = datetime.fromtimestamp(int(thread["PostDate"][6:16]))
+        self.ivle_id = thread['ID']
+        self.user_id = user_id
+        self.post_creator = thread["Poster"]["Name"]
+        self.post_title = thread["PostTitle"]
+        self.post_body = thread["PostBody"]
+        self.parent_thread_id = parent_thread_id
+        self.parent_heading_id = parent_heading_id
         self.modified_timestamp = datetime.now()
-        self.parent_id = parent_id
         self.is_deleted = False
