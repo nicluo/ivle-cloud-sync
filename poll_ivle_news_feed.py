@@ -4,7 +4,6 @@ from app.ivle import IvleClient
 from datetime import datetime
 from time import time
 
-
 def poll_news_feed(user_id):
     #get server values
     user = User.query.filter(User.user_id == user_id).one()
@@ -50,8 +49,9 @@ def poll_news_feed(user_id):
                     #    print thread["Threads"]
             workbins = client.get('Workbins', CourseID=result['ID'], Duration=0)
             for workbin in workbins['Results']:
+                print workbin.keys()
                 title = workbin['Title']
-                #self.exploreFolders(workbin, [courseCode + ' ' + title])
+                exploreFolders(workbin, [courseCode + ' ' + title], workbin['ID'], client, user_id, courseCode)
         print "------------"
 
 
@@ -66,26 +66,24 @@ def exploreThreads(json, user_id, parent_heading_id, parent_thread_id):
             exploreThreads(thread, user_id, parent_heading_id, new_thread.id)
 
 
-def exploreFolders(self, json, parents):
+def exploreFolders(json, parents, ivle_workbin_id, client, user_id, course_code):
+
     for folder in json['Folders']:
-        folderName = folder['FolderName']
+        folder_name = folder['FolderName']
         for file in folder['Files']:
-            fileName = file['FileName']
-            fileID = file['ID']
-            filePath = '/'.join(parents + [folderName] + [fileName])
-            fileURL = self.client.build_download_url(fileID)
+            file_name = file['FileName']
+            file_id = file['ID']
+            file_path = '/'.join(parents + [folder_name])
+            file_url = client.build_download_url(file_id)
+            print file_path
             print file
+            new_ivle_file = IVLEFile(file, file_path, user_id, ivle_workbin_id, course_code)
+            db_session.add(new_ivle_file)
+            db_session.commit()
             #db_session.add(Job(fileID, fileURL, 'http', self.user.user_id,
             #    filePath))
             #db_session.commit()
-        self.exploreFolders(folder, parents + [folderName])
+        exploreFolders(folder, parents + [folder_name], ivle_workbin_id, client, user_id, course_code)
 
-
-def exploreAnnouncements(self):
-    pass
-
-
-def exploreForum(self):
-    pass
 
 poll_news_feed(1)
