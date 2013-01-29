@@ -1,41 +1,18 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <title>{% block title %}{% endblock %}</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Sync your IVLE Workbin files with Dropbox automatically.<">
+<html>
+<head>
+  <title>{% block title %}{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="http://code.jquery.com/mobile/1.3.0-beta.1/jquery.mobile-1.3.0-beta.1.min.css" />
+  <link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet">
+  <script src="http://code.jquery.com/jquery-1.8.3.min.js"></script>
+  <script src="http://code.jquery.com/mobile/1.3.0-beta.1/jquery.mobile-1.3.0-beta.1.min.js"></script>
+</head>
+<body>
 
-    <link href="{{ url_for('static', filename='css/bootstrap.css') }}" rel="stylesheet">
-    <!--<link href="{{ url_for('static', filename='css/bootstrap-responsive.css') }}" rel="stylesheet">-->
-  </head>
+<div data-role="page">
+  {% block body %}{% endblock %}
+</div>
 
-  <body>
-    <div class="navbar">
-      <div class="navbar-inner">
-        <a class="brand" href="/">IVLE Cloud Sync</a>
-        <ul class="nav">
-          <li><a href="/">Home</a></li>
-          <li><a href="#">Log</a></li>
-          <li><a href="#">Settings</a></li>
-        </ul>
-      </div>
-    </div>
-    {% for message in get_flashed_messages() %}
-      <div class="alert">
-        <button type="button" class="close" data-dismiss="alert">&times;</button>
-        {{ message }}
-      </div>
-    {% endfor %}
-
-    <div class="container">
-      {% block body %}{% endblock %}
-
-      <hr>
-
-      <div class="footer">
-        <!--<p>Built by Beng & Nic.</p>-->
-      </div>
-    </div>
-  </body>
+</body>
 </html>
