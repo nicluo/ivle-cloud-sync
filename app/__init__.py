@@ -86,7 +86,10 @@ def dropbox_callback():
 
 @app.route('/auth/dropbox/logout')
 def dropbox_logout():
-    pass
+    g.user.dropbox_key = None
+    g.user.dropbox_secret = None
+    db_session.commit()
+    return redirect(url_for('associate'))
 
 
 @app.route('/logout')
