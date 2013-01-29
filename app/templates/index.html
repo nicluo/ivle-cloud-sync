@@ -1,13 +1,18 @@
 {% extends "layout.html" %}
 {% block title %}IVLE Cloud Sync{% endblock %}
 {% block body %}
-  <div class="hero-unit">
-    <h1>IVLE Cloud Sync</h1>
-    <p>Sync your IVLE Workbin files with Dropbox automatically.</p>
-    <p>
-      <a class="btn btn-large btn-primary" href="{{ url_for('ivle_login') }}">
-        Login with IVLE
-      </a>
-    </p>
-  </div>
+<div data-role="header">
+  <h1>IVLE Cloud Sync</h1>
+</div>
+
+<div class="center" data-role="content">
+  <h1>IVLE Cloud Sync</h1>
+  <p>Sync your IVLE Workbin files with Dropbox automatically.</p>
+  <p>
+    <a data-ajax="false" data-inline="true" data-role="button"
+       href="{{ url_for('ivle_login') }}">
+      Login with IVLE
+    </a>
+  </p>
+</div>
 {% endblock %}

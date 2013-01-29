@@ -1,12 +1,18 @@
 {% extends "layout.html" %}
 {% block title %}Associate Your Dropbox Account - IVLE Cloud Sync{% endblock %}
 {% block body %}
-<img src="{{ url_for('static', filename='img/pe-web.png') }}"><br>
-{% if not user.dropbox_key %}
-Connect with Dropbox to sync your Workbin files.<br>
-<a href="{{ url_for('dropbox_login') }}">Connect with Dropbox</a>
-{% else %}
-You are connected with Dropbox. Your Workbin files will be synced.<br>
-<a href="{{ url_for('dropbox_logout') }}">Disconnect from Dropbox</a>
+<div data-role="header">
+  <h1>Associate</h1>
+</div>
+
+<div class="center" data-role="content">
+  <img src="{{ url_for('static', filename='img/pe-web.png') }}"><br>
+  {% if not user.dropbox_key %}
+  Connect with Dropbox to sync your Workbin files.<br>
+  <a data-inline="true" data-role="button" href="{{ url_for('dropbox_login') }}">Connect with Dropbox</a>
+  {% else %}
+  You are connected with Dropbox. Your Workbin files will be synced.<br>
+  <a data-inline="true" data-role="button"  href="{{ url_for('dropbox_logout') }}">Disconnect from Dropbox</a>
+</div>
 {% endif %}
 {% endblock %}
