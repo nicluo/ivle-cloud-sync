@@ -6,6 +6,46 @@ from time import time
 
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 
+
+def get_announcements(user_id, duration=0):
+    db_announcements = IVLEAnnouncement.query.filter(IVLEAnnouncement.user_id == user_id)\
+        .filter(IVLEAnnouncement.is_deleted == False)\
+        .all()
+    poll = False
+    for announcement in db_announcements:
+        time_diff = datetime.now() - announcement.checked
+        if time_diff.total_seconds() > duration*60:
+            poll = True
+    if poll or len(db_announcements) == 0:
+        poll_news_feed(user_id)
+        db_announcements = IVLEAnnouncement.query.filter(IVLEAnnouncement.user_id == user_id)\
+            .filter(IVLEAnnouncement.is_deleted == False)\
+            .all()
+    announcements = []
+    for announcement in db_announcements:
+        announcements.append({"type" : "announcement",
+                             "ivle_id" : announcement.ivle_id,
+                             "course_code" : announcement.course_code,
+                             "created_date" : announcement.created_date,
+                             "creator" : announcement.announcement_creator,
+                             "title" : announcement.announcement_title,
+                             "body" : announcement.announcement_body,
+                             "is_read" : announcement.is_read})
+    return announcements
+
+
+def get_forum_headings(user_id, duration=0):
+    pass
+
+
+def get_forum_threads(user_id, duration=0):
+    pass
+
+
+def get_files(user_id, duration=0):
+    pass
+
+
 def poll_news_feed(user_id):
     #get server values
     user = User.query.filter(User.user_id == user_id).one()
@@ -24,10 +64,12 @@ def poll_news_feed(user_id):
                 #print datetime.fromtimestamp(int(announcement["CreatedDate"][6:16]))
                 #print announcement["Description"]
                 try:
-                    IVLEAnnouncement.query\
-                        .filter(IVLEAnnouncement.user_id == user.user_id)\
-                        .filter(IVLEAnnouncement.ivle_id == announcement['ID'])\
-                        .one()
+                    db_announcement = IVLEAnnouncement.query\
+                                         .filter(IVLEAnnouncement.user_id == user.user_id)\
+                                         .filter(IVLEAnnouncement.ivle_id == announcement['ID'])\
+                                         .one()
+                    db_announcement.checked = datetime.now()
+                    db_session.commit()
                 except MultipleResultsFound as e:
                     pass
                 except NoResultFound as e:
@@ -121,3 +163,4 @@ def exploreFolders(json, parents, ivle_workbin_id, client, user_id, course_code)
 
 
 poll_news_feed(1)
+print get_announcements(1)

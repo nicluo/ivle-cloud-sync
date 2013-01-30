@@ -104,24 +104,30 @@ class IVLEModule(Base):
         self.checked = datetime.now()
         self.is_deleted = False
 
+
 class IVLEFile(Base):
     __tablename__ = 'ivle_file'
 
-    ivle_file_id = Column(Integer, primary_key=True)
-    course_code = Column(String(16))
-    created_date = Column(DateTime())
-    file_id = Column(String(36))
+    file_id = Column(Integer, primary_key=True)
+    user_id = Column(Integer)
+    ivle_workbin_id = Column(String(36))
+    ivle_file_id = Column(String(36))
+    course_code = Column(String(32))
     file_path = Column(String(256))
-    file_type = Column(String(16))
-    friendly_path = Column(String(256))
+    file_name = Column(String(256))
+    dropbox_uploaded_date = Column(DateTime)
+    dropbox_revision = Column(Integer)
+    is_deleted = Column(Boolean)
 
-    def __init__(self, file):
-        self.course_code = file['CourseCode']
-        self.created_date = datetime.fromtimestamp(float(file['CreatedDate'][6:-2]) / 1000.0)
-        self.file_id = file['FileID']
-        self.file_path = file['FilePath']
-        self.file_type = file['FileType']
-        self.friendly_path = file['FriendlyPath']
+    def __init__(self, file, file_path, user_id, ivle_workbin_id, course_code):
+        self.user_id = user_id
+        self.course_code = course_code
+        self.ivle_workbin_id = ivle_workbin_id
+        self.ivle_file_id = file['ID']
+        self.course_code = course_code
+        self.file_path = file_path
+        self.file_name = file['FileName']
+        self.is_deleted = False
 
 
 class IVLEAnnouncement(Base):
@@ -136,6 +142,7 @@ class IVLEAnnouncement(Base):
     announcement_title = Column(String(256))
     announcement_body = Column(Text)
     modified_timestamp = Column(DateTime())
+    checked = Column(DateTime())
     is_read = Column(Boolean)
     is_deleted = Column(Boolean)
 
@@ -150,6 +157,7 @@ class IVLEAnnouncement(Base):
         self.is_read = announcement["isRead"]
         self.modified_timestamp = datetime.now()
         self.is_deleted = False
+        self.checked = datetime.now()
 
 class IVLEForumHeading(Base):
     __tablename__ = 'ivle_forum_heading'
