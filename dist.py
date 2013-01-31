@@ -2,15 +2,12 @@ import os
 import logging
 import requests
 
-from app.database import db_session
-from app.models import User, Job, OnlineStore, History
 from dropbox import client, rest, session
-
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 
-APP_KEY = 'br678pfbbwqbi1y'
-APP_SECRET = '***REMOVED***'
-ACCESS_TYPE = 'app_folder'
+from ivlemods import app
+from ivlemods.database import db_session
+from ivlemods.models import User, Job, OnlineStore, History
 
 logging.basicConfig()
 fm = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -24,7 +21,8 @@ class SessionHandler():
     def __init__(self, user_id):
         user = User.query.get(user_id)
         logger.debug("Session - logging in as user %s", user.user_id)
-        sess = session.DropboxSession(APP_KEY, APP_SECRET, ACCESS_TYPE)
+        sess = session.DropboxSession(app.config['DROPBOX_APP_KEY'],
+            app.config['DROPBOX_APP_SECRET'], app.config['DROPBOX_ACCESS_TYPE'])
         sess.set_token(user.dropbox_key, user.dropbox_secret)
         self.client = client.DropboxClient(sess)
 

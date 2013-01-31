@@ -1,2 +1,2 @@
-from app import app
-app.run(debug=True)
+from ivlemods import app
+app.run()

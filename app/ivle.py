@@ -1,12 +1,13 @@
 from requests import get
 from urllib import urlencode
 
+from ivlemods import app
+
 LAPI_URL = 'https://ivle.nus.edu.sg/api/Lapi.svc/'
-IVLE_LAPI_KEY = '***REMOVED***'
 
 class IvleClient:
     def __init__(self, auth_token):
-        self.api_key = IVLE_LAPI_KEY
+        self.api_key = app.config['IVLE_LAPI_KEY']
         self.auth_token = auth_token
 
     def build_params(self, params):
