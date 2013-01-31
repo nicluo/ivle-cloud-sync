@@ -1,6 +1,6 @@
-from app.database import db_session
-from app.models import IVLEFile, User, Job, IVLEAnnouncement, IVLEForumHeading, IVLEForumThread
-from app.ivle import IvleClient
+from ivlemods.database import db_session
+from ivlemods.models import IVLEFile, User, Job, IVLEAnnouncement, IVLEForumHeading, IVLEForumThread
+from ivlemods.ivle import IvleClient
 from datetime import datetime
 from time import time
 

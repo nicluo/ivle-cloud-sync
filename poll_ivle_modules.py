@@ -1,6 +1,6 @@
-from app.database import db_session
-from app.models import IVLEModule, User
-from app.ivle import IvleClient
+from ivlemods.database import db_session
+from ivlemods.models import IVLEModule, User
+from ivlemods.ivle import IvleClient
 from datetime import datetime
 
 

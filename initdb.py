@@ -1,8 +1,8 @@
-from app.database import db_session, init_db
+from ivlemods.database import db_session, init_db
 
 init_db()
 
-from app.models import Job, User
+from ivlemods.models import Job, User
 
 db_session.add_all([
 #    User('a0071932', 'a0071932@nus.edu.sg', 'LUO KENN SIANG',

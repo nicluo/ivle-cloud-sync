@@ -1,6 +1,6 @@
-from app.database import db_session
-from app.models import IVLEFile, User, Job
-from app.ivle import IvleClient
+from ivlemods.database import db_session
+from ivlemods.models import IVLEFile, User, Job
+from ivlemods.ivle import IvleClient
 
 class Worker():
     def __init__(self, user):

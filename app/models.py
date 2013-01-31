@@ -2,7 +2,7 @@ from datetime import datetime
 
 from sqlalchemy import Column, Date, DateTime, Integer, String, Boolean, Text
 
-from app.database import Base
+from ivlemods.database import Base
 
 class User(Base):
     __tablename__ = 'users'
