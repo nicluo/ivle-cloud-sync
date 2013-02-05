@@ -118,6 +118,7 @@ class IVLEFile(Base):
     dropbox_uploaded_date = Column(DateTime)
     dropbox_revision = Column(Integer)
     is_deleted = Column(Boolean)
+    checked = Column(DateTime())
 
     def __init__(self, file, file_path, user_id, ivle_workbin_id, course_code):
         self.user_id = user_id
@@ -127,6 +128,7 @@ class IVLEFile(Base):
         self.course_code = course_code
         self.file_path = file_path
         self.file_name = file['FileName']
+        self.checked = datetime.now()
         self.is_deleted = False
 
 
@@ -142,9 +144,9 @@ class IVLEAnnouncement(Base):
     announcement_title = Column(String(256))
     announcement_body = Column(Text)
     modified_timestamp = Column(DateTime())
-    checked = Column(DateTime())
     is_read = Column(Boolean)
     is_deleted = Column(Boolean)
+    checked = Column(DateTime())
 
     def __init__(self, announcement, course_code, user_id):
         self.user_id = user_id
@@ -171,6 +173,7 @@ class IVLEForumHeading(Base):
     heading_title = Column(String(200))
     modified_timestamp = Column(DateTime())
     is_deleted = Column(Boolean)
+    checked = Column(DateTime())
 
     def __init__(self, forum, heading, course_code, user_id):
         self.user_id = user_id
@@ -180,6 +183,7 @@ class IVLEForumHeading(Base):
         self.forum_title = forum['Title']
         self.heading_title = heading['Title']
         self.modified_timestamp = datetime.now()
+        self.checked = datetime.now()
         self.is_deleted = False
 
 
@@ -189,6 +193,7 @@ class IVLEForumThread(Base):
     id = Column(Integer, primary_key=True)
     ivle_id = Column(String(36))
     user_id = Column(Integer)
+    course_code = Column(String(32))
     created_date = Column(DateTime())
     post_creator = Column(String(256))
     post_title = Column(String(256))
@@ -197,15 +202,18 @@ class IVLEForumThread(Base):
     parent_thread_id = Column(Integer)
     modified_timestamp = Column(DateTime())
     is_deleted = Column(Boolean)
+    checked = Column(DateTime())
 
-    def __init__(self, thread, user_id, parent_heading_id, parent_thread_id):
+    def __init__(self, thread, user_id, parent_heading_id, parent_thread_id, course_code):
         self.created_date = datetime.fromtimestamp(int(thread["PostDate"][6:16]))
         self.ivle_id = thread['ID']
         self.user_id = user_id
+        self.course_code = course_code
         self.post_creator = thread["Poster"]["Name"]
         self.post_title = thread["PostTitle"]
         self.post_body = thread["PostBody"]
         self.parent_thread_id = parent_thread_id
         self.parent_heading_id = parent_heading_id
         self.modified_timestamp = datetime.now()
+        self.checked = datetime.now()
         self.is_deleted = False
