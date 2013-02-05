@@ -35,7 +35,30 @@ def get_announcements(user_id, duration=0):
 
 
 def get_forum_headings(user_id, duration=0):
-    pass
+    db_forum_headings = IVLEForumHeading.query.filter(IVLEForumHeading.user_id == user_id)\
+        .filter(IVLEForumHeading.is_deleted == False)\
+        .all()
+    poll = False
+    for forum_heading in db_forum_headings:
+        time_diff = datetime.now() - forum_heading.checked
+        if time_diff.total_seconds() > duration*60:
+            poll = True
+    if poll or len(db_forum_headings) == 0:
+        poll_news_feed(user_id)
+        db_forum_headings = IVLEForumHeading.query.filter(IVLEForumHeading.user_id == user_id)\
+            .filter(IVLEForumHeading.is_deleted == False)\
+            .all()
+    forum_headings = []
+    #for announcement in db_announcements:
+    #    announcements.append({"type" : "announcement",
+    #                          "ivle_id" : announcement.ivle_id,
+    #                          "course_code" : announcement.course_code,
+    #                          "created_date" : announcement.created_date,
+    #                          "creator" : announcement.announcement_creator,
+    #                          "title" : announcement.announcement_title,
+    #                          "body" : announcement.announcement_body,
+    #                          "is_read" : announcement.is_read})
+    return forum_headings
 
 
 def get_forum_threads(user_id, duration=0):
