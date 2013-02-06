@@ -1,16 +1,22 @@
+from functools import wraps
+
 from dropbox.session import DropboxSession
 from flask import g, redirect, render_template, request, session, url_for
 
 from ivlemods import app
 from ivlemods.ivle import IvleClient
 from ivlemods.database import db_session
-from ivlemods.models import User
+from ivlemods.models import IVLEFile, User
 
-@app.before_request
-def before_request():
-    g.user = None
-    if 'user_id' in session:
-        g.user = User.query.get(session['user_id'])
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' in session:
+            g.user = User.query.get(session['user_id'])
+        else:
+            return redirect(url_for('ivle_login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 @app.teardown_request
@@ -49,10 +55,27 @@ def ivle_callback():
 
 
 @app.route('/associate')
+@login_required
 def associate():
-    return render_template('associate.html', user=g.user)
+    ivle_files = g.user.ivle_files.group_by(IVLEFile.file_path).all()
+    modules = {}
+    for file in ivle_files:
+        directories = file.file_path.split('/')
+        module_name = directories[0]
+        if module_name not in modules:
+            modules[module_name] = [{
+                'directory': module_name,
+                'nesting_level': 0
+            }]
+        modules[module_name].append({
+            'directory': directories[-1],
+            'nesting_level': len(directories) - 1
+        })
+    print modules
+    return render_template('associate.html', user=g.user, modules=modules)
 
 @app.route('/auth/dropbox/login')
+@login_required
 def dropbox_login():
     dropbox_session = DropboxSession(app.config['DROPBOX_APP_KEY'],
         app.config['DROPBOX_APP_SECRET'], app.config['DROPBOX_ACCESS_TYPE'])
@@ -64,6 +87,7 @@ def dropbox_login():
 
 
 @app.route('/auth/dropbox/callback')
+@login_required
 def dropbox_callback():
     dropbox_session = DropboxSession(app.config['DROPBOX_APP_KEY'],
         app.config['DROPBOX_APP_SECRET'], app.config['DROPBOX_ACCESS_TYPE'])
@@ -79,6 +103,7 @@ def dropbox_callback():
 
 
 @app.route('/auth/dropbox/logout')
+@login_required
 def dropbox_logout():
     g.user.dropbox_key = None
     g.user.dropbox_secret = None

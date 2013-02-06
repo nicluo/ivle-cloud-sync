@@ -16,5 +16,15 @@
   <a data-inline="true" data-role="button"
      href="{{ url_for('dropbox_logout') }}">Disconnect from Dropbox</a>
   {% endif %}
+  <h2>Folders to Sync</h2>
+  {% for module in modules.values() %}
+    <fieldset data-role="controlgroup">
+      {% for directory in module %}
+        <label class="nest{{ directory['nesting_level'] }}"><input type="checkbox" data-mini="true"/>
+          {{ directory['directory'] }}
+        </label>
+      {% endfor %}
+     </fieldset>
+  {% endfor %}
 </div>
 {% endblock %}

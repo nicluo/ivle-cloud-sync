@@ -6,3 +6,21 @@
   margin-left: auto;
   margin-right: auto;
 }
+
+.ui-checkbox .ui-btn-text:before {
+  content: "\f115";
+  font-family: FontAwesome;
+  font-weight: normal;
+}
+
+.nest1 .ui-btn-text {
+  margin-left: 16px;
+}
+
+.nest2 .ui-btn-text {
+  margin-left: 32px;
+}
+
+.nest3 .ui-btn-text {
+  margin-left: 48px;
+}
