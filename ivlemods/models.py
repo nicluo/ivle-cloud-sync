@@ -1,6 +1,8 @@
 from datetime import datetime
 
 from sqlalchemy import Column, Date, DateTime, Integer, String, Boolean, Text
+from sqlalchemy.orm import backref, relationship
+from sqlalchemy.schema import ForeignKey
 
 from ivlemods.database import Base
 
@@ -109,7 +111,7 @@ class IVLEFile(Base):
     __tablename__ = 'ivle_file'
 
     file_id = Column(Integer, primary_key=True)
-    user_id = Column(Integer)
+    user_id = Column(Integer, ForeignKey('users.user_id'))
     ivle_workbin_id = Column(String(36))
     ivle_file_id = Column(String(36))
     course_code = Column(String(32))
@@ -119,6 +121,8 @@ class IVLEFile(Base):
     dropbox_revision = Column(Integer)
     is_deleted = Column(Boolean)
     checked = Column(DateTime())
+
+    user = relationship(User, backref=backref('ivle_files', lazy='dynamic'))
 
     def __init__(self, file, file_path, user_id, ivle_workbin_id, course_code):
         self.user_id = user_id
