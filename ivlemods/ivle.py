@@ -27,4 +27,7 @@ class IvleClient:
     @staticmethod
     def build_authorize_url(callback_url):
         return ('https://ivle.nus.edu.sg/api/login/?' +
-                urlencode({'apikey': IVLE_LAPI_KEY, 'url': callback_url}))
+                urlencode({
+                    'apikey': app.config['IVLE_LAPI_KEY'],
+                    'url': callback_url
+                }))
