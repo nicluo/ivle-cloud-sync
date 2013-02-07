@@ -2,12 +2,21 @@ from ivlemods.database import db_session
 from ivlemods.models import IVLEFile, User, Job, IVLEAnnouncement, IVLEForumHeading, IVLEForumThread
 from ivlemods.ivle import IvleClient
 from datetime import datetime
-from time import time
+import logging
 
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 
+logging.basicConfig()
+fm = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+ch = logging.FileHandler('dist.log', 'w')
+ch.setFormatter(fm)
+logger = logging.getLogger('poll_ivle_news_feed')
+logger.setLevel(logging.INFO)
+logger.addHandler(ch)
+
 
 def get_announcements(user_id, duration=0):
+    logger.info("GET - Announcements for user %s.", user_id)
     db_announcements = IVLEAnnouncement.query.filter(IVLEAnnouncement.user_id == user_id)\
         .filter(IVLEAnnouncement.is_deleted == False)\
         .all()
@@ -35,6 +44,7 @@ def get_announcements(user_id, duration=0):
 
 
 def get_forum_headings(user_id, duration=0):
+    logger.info("GET - Forum headings for user %s.", user_id)
     db_forum_headings = IVLEForumHeading.query.filter(IVLEForumHeading.user_id == user_id)\
         .filter(IVLEForumHeading.is_deleted == False)\
         .all()
@@ -61,6 +71,7 @@ def get_forum_headings(user_id, duration=0):
 
 
 def get_forum_threads(user_id, duration=0):
+    logger.info("GET - Forum threads for user %s.", user_id)
     db_forum_threads = IVLEForumThread.query.filter(IVLEForumThread.user_id == user_id)\
         .filter(IVLEForumThread.is_deleted == False)\
         .all()
@@ -90,6 +101,7 @@ def get_forum_threads(user_id, duration=0):
 
 
 def get_files(user_id, duration=0):
+    logger.info("GET - Files for user %s.", user_id)
     db_files = IVLEFile.query.filter(IVLEFile.user_id == user_id)\
         .filter(IVLEFile.is_deleted == False)\
         .all()
@@ -116,6 +128,7 @@ def get_files(user_id, duration=0):
 
 
 def poll_news_feed(user_id):
+    logger.info("POLL - IVLE news feed for user %s.", user_id)
     #get server values
     user = User.query.filter(User.user_id == user_id).one()
     client = IvleClient(user.ivle_token)
