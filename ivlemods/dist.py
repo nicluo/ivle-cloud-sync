@@ -6,6 +6,7 @@ from dropbox import client, rest, session
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 
 from ivlemods import app
+from ivlemods.celery import celery
 from ivlemods.database import db_session
 from ivlemods.models import User, Job, OnlineStore, History
 
@@ -266,7 +267,7 @@ class Worker():
             logger.info("FileCopier - File %s for User %s", entry.file_id, entry.user_id)
             FileCopier(entry)
 
-
+@celery.task
 def main():
     Worker()
 
