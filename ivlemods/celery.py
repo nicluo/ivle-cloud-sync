@@ -4,8 +4,7 @@ from celery import Celery
 
 celery = Celery('ivlemods.celery',
     broker='amqp://',
-    backend='amqp://',
-    include=['ivlemods.dist'])
+    include=['ivlemods.dist', 'ivlemods.tasks'])
 
 # Optional configuration, see the application user guide.
 celery.conf.update(
