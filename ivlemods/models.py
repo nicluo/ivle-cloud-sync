@@ -17,6 +17,7 @@ class User(Base):
     dropbox_uid = Column(Integer)
     dropbox_key = Column(String(15))
     dropbox_secret = Column(String(15))
+    workbin_checked = Column(DateTime)
 
     def __init__(self, ivle_uid, ivle_email, ivle_name, ivle_token,
                  dropbox_key=None, dropbox_secret=None):
@@ -26,6 +27,7 @@ class User(Base):
         self.ivle_token = ivle_token
         self.dropbox_key = dropbox_key
         self.dropbox_secret = dropbox_secret
+        self.workbin_checked = datetime.now()
 
 class Job(Base):
     __tablename__ = 'dropbox_jobs'
@@ -96,7 +98,7 @@ class IVLEModule(Base):
     user_id = Column(Integer)
     course_code = Column(String(16))
     course_id = Column(String(36))
-    checked = Column(DateTime())
+    checked = Column(DateTime)
     is_deleted = Column(Boolean)
 
     def __init__(self, module, user_id):
@@ -120,7 +122,7 @@ class IVLEFile(Base):
     dropbox_uploaded_date = Column(DateTime)
     dropbox_revision = Column(Integer)
     is_deleted = Column(Boolean)
-    checked = Column(DateTime())
+    checked = Column(DateTime)
 
     user = relationship(User, backref=backref('ivle_files', lazy='dynamic'))
 
@@ -143,14 +145,14 @@ class IVLEAnnouncement(Base):
     ivle_id = Column(String(36))
     user_id = Column(Integer)
     course_code = Column(String(32))
-    created_date = Column(DateTime())
+    created_date = Column(DateTime)
     announcement_creator = Column(String(256))
     announcement_title = Column(String(256))
     announcement_body = Column(Text)
-    modified_timestamp = Column(DateTime())
+    modified_timestamp = Column(DateTime)
     is_read = Column(Boolean)
     is_deleted = Column(Boolean)
-    checked = Column(DateTime())
+    checked = Column(DateTime)
 
     def __init__(self, announcement, course_code, user_id):
         self.user_id = user_id
@@ -175,9 +177,9 @@ class IVLEForumHeading(Base):
     ivle_heading_id = Column(String(36))
     forum_title = Column(String(200))
     heading_title = Column(String(200))
-    modified_timestamp = Column(DateTime())
+    modified_timestamp = Column(DateTime)
     is_deleted = Column(Boolean)
-    checked = Column(DateTime())
+    checked = Column(DateTime)
 
     def __init__(self, forum, heading, course_code, user_id):
         self.user_id = user_id
@@ -198,15 +200,15 @@ class IVLEForumThread(Base):
     ivle_id = Column(String(36))
     user_id = Column(Integer)
     course_code = Column(String(32))
-    created_date = Column(DateTime())
+    created_date = Column(DateTime)
     post_creator = Column(String(256))
     post_title = Column(String(256))
     post_body = Column(Text)
     parent_heading_id = Column(Integer)
     parent_thread_id = Column(Integer)
-    modified_timestamp = Column(DateTime())
+    modified_timestamp = Column(DateTime)
     is_deleted = Column(Boolean)
-    checked = Column(DateTime())
+    checked = Column(DateTime)
 
     def __init__(self, thread, user_id, parent_heading_id, parent_thread_id, course_code):
         self.created_date = datetime.fromtimestamp(int(thread["PostDate"][6:16]))
