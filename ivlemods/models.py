@@ -19,7 +19,7 @@ class User(Base):
     dropbox_secret = Column(String(15))
 
     def __init__(self, ivle_uid, ivle_email, ivle_name, ivle_token,
-                 dropbox_key, dropbox_secret):
+                 dropbox_key=None, dropbox_secret=None):
         self.ivle_uid = ivle_uid
         self.ivle_email = ivle_email
         self.ivle_name = ivle_name

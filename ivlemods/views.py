@@ -13,7 +13,7 @@ def login_required(f):
     def decorated_function(*args, **kwargs):
         if 'user_id' in session:
             g.user = User.query.get(session['user_id'])
-        else:
+        if not g.user:
             return redirect(url_for('ivle_login'))
         return f(*args, **kwargs)
     return decorated_function
