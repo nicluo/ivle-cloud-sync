@@ -259,17 +259,10 @@ class FileCopier():
         db_session.commit()
 
 
-class Worker():
-    def __init__(self):
-        for entry in Job.query\
-            .filter(Job.status == 0)\
-            .all():
-            logger.info("FileCopier - File %s for User %s", entry.file_id, entry.user_id)
-            FileCopier(entry)
-
 @celery.task
-def main():
-    Worker()
-
-if __name__ == '__main__':
-    main()
+def upload_dropbox_jobs():
+    for entry in Job.query\
+        .filter(Job.status == 0)\
+        .all():
+        logger.info("FileCopier - File %s for User %s", entry.file_id, entry.user_id)
+        FileCopier(entry)
