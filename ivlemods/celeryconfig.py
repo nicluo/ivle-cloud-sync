@@ -12,7 +12,7 @@ CELERYBEAT_SCHEDULE = {
         },
     'every-five-minutes-except-between-three-to-four-am': {
         'task': 'ivlemods.tasks.ivle_workbin_to_dropbox_jobs',
-        'schedule': crontab(minute='*/5', hour=[0-2,4-23]),
+        'schedule': crontab(minute='*/5', hour='0-2,4-23'),
         'args': (5,),
         }
 }
