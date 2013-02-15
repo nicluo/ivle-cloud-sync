@@ -21,7 +21,6 @@ def explore_folders(user, client, json, parents):
 
 @celery.task
 def ivle_workbin_to_dropbox_job(user_id, duration=0):
-    print user_id
     user = User.query.get(user_id)
     if user.workbin_checked < datetime.now() - timedelta(minutes=duration):
         user.workbin_checked = datetime.now()
@@ -40,9 +39,10 @@ def ivle_workbin_to_dropbox_job(user_id, duration=0):
                         [courseCode + ' ' + title])
 
 
+@celery.task
 def ivle_workbin_to_dropbox_jobs(duration=0):
-    return ivle_workbin_to_dropbox_job.starmap(
+    ivle_workbin_to_dropbox_job.starmap(
         [(id, duration) for id, in User.query.filter(
             User.workbin_checked < datetime.now() - timedelta(minutes=duration)
         ).values(User.user_id)]
-    )
+    ).delay()
