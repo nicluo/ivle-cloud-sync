@@ -46,7 +46,13 @@ class FileFetch():
         r = requests.get(self.job.http_url)
         r.raise_for_status()
         logger.debug(r.headers)
-        out = open('cache/tmp', 'wb')
+
+        #ensure proper, empty temp file for the cache to use
+        cache_path = 'cache/tmp'
+        self.ensure_directory(cache_path)
+        cache_path = self.find_unused(cache_path)
+
+        out = open(cache_path, 'wb')
         out.write(r.content)
         out.close()
         logger.debug(self.job.target_path + " downloaded.")
@@ -58,8 +64,19 @@ class FileFetch():
         except IOError as e:
             logger.critical(e)
             pass
-        os.renames('cache/tmp', 'cache/' + self.job.file_id)
+        os.renames(cache_path, 'cache/' + self.job.file_id)
 
+    def ensure_directory(self, f):
+        d = os.path.dirname(f)
+        if not os.path.exists(d):
+            os.makedirs(d)
+
+    def find_unused(self, original_path):
+        check_path = original_path
+        conflict_num = 0
+        while(os.path.exists(check_path)):
+            title, ext = os.path.splitext(original_path)
+            check_path = title + conflict_num + ext
 
 class FileProcessOverwrite():
     def __init__(self, dropbox_user_id, check_path):
@@ -264,5 +281,5 @@ def upload_dropbox_jobs():
     for entry in Job.query\
         .filter(Job.status == 0)\
         .all():
-        logger.info("FileCopier - File %s for User %s", entry.file_id, entry.user_id)
+        logger.info("FileCopier - Starting file transfer %s for User %s", entry.file_id, entry.user_id)
         FileCopier(entry)
