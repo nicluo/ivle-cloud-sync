@@ -113,19 +113,26 @@ class IVLEFolder(Base):
     __tablename__ = 'ivle_folder'
 
     folder_id = Column(Integer, primary_key=True)
-    ivle_folder_id = Column(String(36))
+
+    user_id = Column(Integer, ForeignKey('users.user_id'))
+    ivle_id = Column(String(36))
+    ivle_parent_id = Column(String(36))
     ivle_workbin_id = Column(String(36))
     course_code = Column(String(32))
+    name = Column(String(256))
     path = Column(String(256))
     is_deleted = Column(Boolean)
     checked = Column(DateTime)
 
     def __init__(self, meta):
-        self.user_id = user_id
+        if 'parent_folder_id' in meta.keys():
+            self.ivle_parent_id = meta['ivle_parent_id']
+        self.user_id = meta['user_id']
         self.course_code = meta['course_code']
-        self.ivle_folder_id = meta['ivle_folder_id']
+        self.ivle_id = meta['ivle_id']
         self.ivle_workbin_id = meta['ivle_workbin_id']
         self.course_code = meta['course_code']
+        self.name = meta['name']
         self.path = meta['path']
         self.is_deleted = False
         self.checked = datetime.now()
