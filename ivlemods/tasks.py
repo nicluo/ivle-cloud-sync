@@ -1,9 +1,13 @@
 from datetime import datetime, timedelta
+import logging
 
 from ivlemods.celery import celery
 from ivlemods.database import db_session
 from ivlemods.models import User, Job
 from ivlemods.ivle import IvleClient
+
+logger = logging.getLogger(__name__)
+
 
 def explore_folders(user, client, json, parents):
     for folder in json['Folders']:

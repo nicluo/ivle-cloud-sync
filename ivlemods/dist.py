@@ -10,13 +10,8 @@ from ivlemods.celery import celery
 from ivlemods.database import db_session
 from ivlemods.models import User, Job, OnlineStore, History
 
-logging.basicConfig()
-fm = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-ch = logging.FileHandler('dist.log', 'w')
-ch.setFormatter(fm)
-logger = logging.getLogger('dropbox_dist')
-logger.setLevel(logging.INFO)
-logger.addHandler(ch)
+logger = logging.getLogger(__name__)
+
 
 class SessionHandler():
     def __init__(self, user_id):
@@ -114,7 +109,7 @@ class FileProcessOverwrite():
                             + unicode(self.conflict_num)\
                             + "]" \
                             + ext
-    
+
     def target_file_exists(self):
         SH = SessionHandler(self.check_user_id)
         try:
@@ -127,7 +122,7 @@ class FileProcessOverwrite():
             logger.error(e)
             return False
 
-        
+
     def target_file_modified(self):
         #if the file is in online store, and copy ref validates - file was never modified by user.
         SH = SessionHandler(self.check_user_id)
@@ -137,7 +132,7 @@ class FileProcessOverwrite():
                       .filter(OnlineStore.source_user_id == self.check_user_id)\
                       .filter(OnlineStore.source_file_path == self.check_path)\
                       .one()
-                      
+
             self.check_revision = result.source_file_revision
             if meta["revision"] == self.check_revision:
                 #the revision is consistent with the one we uploaded
@@ -149,13 +144,13 @@ class FileProcessOverwrite():
                 #user has modified
                 logger.info("FileProcessOverwrite - file modified by user")
                 return True
-            
+
         except MultipleResultsFound as e:
             #Shouldn't reach here
             #TODO: delete entries
             logger.critical("FileProcessOverwrite - duplicate file entry")
             return True
-        
+
         except NoResultFound as e:
             #file isn't in online store - either
             #1 we didn't upload it
@@ -185,7 +180,7 @@ class FileProcessOverwrite():
 
     def get_target_file_path(self):
         return self.return_path[1:]
-    
+
 
 
 class FileCopier():
@@ -194,7 +189,7 @@ class FileCopier():
         self.job.status = 1
         FPO = FileProcessOverwrite(job.user_id, job.target_path)
         self.processed_path = FPO.get_target_file_path()
-        
+
         self.SH = SessionHandler(1)
         self.cli = self.SH.client
         for entry in self.fetch_copy_ref_db(self.job.file_id):

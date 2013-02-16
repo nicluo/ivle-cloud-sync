@@ -6,13 +6,7 @@ import logging
 
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 
-logging.basicConfig()
-fm = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-ch = logging.FileHandler('dist.log', 'w')
-ch.setFormatter(fm)
-logger = logging.getLogger('poll_ivle_news_feed')
-logger.setLevel(logging.INFO)
-logger.addHandler(ch)
+logger = logging.getLogger(__name__)
 
 
 def get_announcements(user_id, duration=0):
