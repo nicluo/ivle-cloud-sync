@@ -77,6 +77,7 @@ class FileFetch():
         while(os.path.exists(check_path)):
             title, ext = os.path.splitext(original_path)
             check_path = title + conflict_num + ext
+        return check_path
 
 class FileProcessOverwrite():
     def __init__(self, dropbox_user_id, check_path):
