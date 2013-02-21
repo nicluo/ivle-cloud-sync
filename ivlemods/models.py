@@ -123,6 +123,7 @@ class IVLEFolder(Base):
     path = Column(String(256))
     is_deleted = Column(Boolean)
     checked = Column(DateTime)
+    sync = Column(Boolean)
 
     def __init__(self, meta):
         if 'parent_folder_id' in meta.keys():
@@ -136,6 +137,7 @@ class IVLEFolder(Base):
         self.path = meta['path']
         self.is_deleted = False
         self.checked = datetime.now()
+        self.sync = True
 
 
 class IVLEFile(Base):
