@@ -3,6 +3,7 @@ from ivlemods.models import IVLEFile, User, Job, IVLEAnnouncement, IVLEForumHead
 from ivlemods.ivle import IvleClient
 from datetime import datetime
 import logging
+from re import escape
 
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 
@@ -190,7 +191,7 @@ def poll_news_feed(user_id):
             for workbin in workbins['Results']:
                 #print workbin.keys()
                 title = workbin['Title']
-                exploreFolders(workbin, [courseCode + ' ' + title], workbin['ID'], client, user_id, courseCode)
+                exploreFolders(workbin, [escape(courseCode) + ' ' + escape(title)], workbin['ID'], client, user_id, courseCode)
         #print "------------"
 
 
@@ -236,7 +237,13 @@ def exploreFolders(json, parents, ivle_workbin_id, client, user_id, course_code)
             except MultipleResultsFound as e:
                 pass
             except NoResultFound as e:
-                new_ivle_file = IVLEFile(file, file_path, user_id, ivle_workbin_id, course_code)
+                new_ivle_file = IVLEFile({'user_id': user_id,\
+                                          'course_code': course_code,\
+                                          'ivle_workbin_id': ivle_workbin_id,\
+                                          'ivle_file_id': file['ID'],\
+                                          'ivle_folder_id': folder['ID'],\
+                                          'file_path': file_path,\
+                                          'file_name': file['FileName']})
                 db_session.add(new_ivle_file)
                 db_session.commit()
                 #db_session.add(Job(fileID, fileURL, 'http', self.user.user_id, filePath))
@@ -247,4 +254,4 @@ def exploreFolders(json, parents, ivle_workbin_id, client, user_id, course_code)
 print get_announcements(1, 2)
 print get_forum_headings(1, 2)
 print get_forum_threads(1, 2)
-print get_files(1, 2)
+print get_files(1, 0)

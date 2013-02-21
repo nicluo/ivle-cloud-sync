@@ -147,6 +147,7 @@ class IVLEFile(Base):
     user_id = Column(Integer, ForeignKey('users.user_id'))
     ivle_workbin_id = Column(String(36))
     ivle_file_id = Column(String(36))
+    ivle_folder_id = Column(String(36))
     course_code = Column(String(32))
     file_path = Column(String(256))
     file_name = Column(String(256))
@@ -157,14 +158,15 @@ class IVLEFile(Base):
 
     user = relationship(User, backref=backref('ivle_files', lazy='dynamic'))
 
-    def __init__(self, file, file_path, user_id, ivle_workbin_id, course_code):
-        self.user_id = user_id
-        self.course_code = course_code
-        self.ivle_workbin_id = ivle_workbin_id
-        self.ivle_file_id = file['ID']
-        self.course_code = course_code
-        self.file_path = file_path
-        self.file_name = file['FileName']
+    def __init__(self, meta):
+        self.user_id = meta['user_id']
+        self.course_code = meta['course_code']
+        self.ivle_workbin_id = meta['ivle_workbin_id']
+        self.ivle_file_id = meta['ivle_file_id']
+        self.ivle_folder_id = meta['ivle_folder_id']
+        self.course_code = meta['course_code']
+        self.file_path = meta['file_path']
+        self.file_name = meta['file_name']
         self.checked = datetime.now()
         self.is_deleted = False
 

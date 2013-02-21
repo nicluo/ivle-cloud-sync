@@ -71,7 +71,7 @@ class FileFetch():
         conflict_num = 0
         while(os.path.exists(check_path)):
             title, ext = os.path.splitext(original_path)
-            check_path = title + conflict_num + ext
+            check_path = title + str(conflict_num) + ext
         return check_path
 
 class FileProcessOverwrite():

@@ -49,13 +49,12 @@ def poll_ivle_folders(user_id):
         if result['isActive'] == 'Y':
             workbins = client.get('Workbins', CourseID=result['ID'], Duration=0)
             for workbin in workbins['Results']:
-                #print workbin.keys()
                 title = workbin['Title']
                 args = {
                     'user_id': user_id,
                     'course_code': courseCode,
                     'ivle_workbin_id': workbin['ID'],
-                    'path': ' '.join([courseCode, escape(workbin['Title'])])
+                    'path': ' '.join([escape(courseCode), escape(workbin['Title'])])
                 }
                 exploreFolders(workbin, args)
         #print "------------"
@@ -82,6 +81,3 @@ def exploreFolders(json, args):
             db_session.commit()
         meta['ivle_parent_id'] = meta['ivle_id']
         exploreFolders(folder, meta)
-
-
-print get_folders(1, 2)
