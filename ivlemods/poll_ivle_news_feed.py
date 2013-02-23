@@ -3,7 +3,6 @@ from ivlemods.models import IVLEFile, User, Job, IVLEAnnouncement, IVLEForumHead
 from ivlemods.ivle import IvleClient
 from datetime import datetime
 import logging
-from re import escape
 
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 
@@ -191,7 +190,7 @@ def poll_news_feed(user_id):
             for workbin in workbins['Results']:
                 #print workbin.keys()
                 title = workbin['Title']
-                exploreFolders(workbin, [escape(courseCode) + ' ' + escape(title)], workbin['ID'], client, user_id, courseCode)
+                exploreFolders(workbin, [courseCode.replace("/", "+") + ' ' + title], workbin['ID'], client, user_id, courseCode.replace("/", "+"))
         #print "------------"
 
 

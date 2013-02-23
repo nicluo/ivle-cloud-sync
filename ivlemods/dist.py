@@ -57,7 +57,8 @@ class FileFetch():
                 os.remove('cache/' + self.job.file_id)
                 logger.warning("Cache - have to delete existing file.")
         except IOError as e:
-            logger.critical(e)
+            logger.info("Cache - new file generated.")
+            #logger.critical(e)
             pass
         os.renames(cache_path, 'cache/' + self.job.file_id)
 
@@ -119,7 +120,7 @@ class FileProcessOverwrite():
                     return False
             return True
         except rest.ErrorResponse as e:
-            logger.error(e)
+            #logger.error(e)
             return False
 
 
@@ -190,7 +191,7 @@ class FileCopier():
         FPO = FileProcessOverwrite(job.user_id, job.target_path)
         self.processed_path = FPO.get_target_file_path()
 
-        self.SH = SessionHandler(1)
+        self.SH = SessionHandler(self.job.user_id)
         self.cli = self.SH.client
         for entry in self.fetch_copy_ref_db(self.job.file_id):
             if self.check_copy_ref_validity(entry):
@@ -216,6 +217,7 @@ class FileCopier():
 
         self.put_into_copy_ref_store(response)
         self.log_file_copy(response["path"])
+        self.job.status = 2
 
     def upload_copy_ref(self, copy_ref_entry):
         try:
@@ -223,17 +225,20 @@ class FileCopier():
             if "is_deleted" in meta.keys():
                 if not meta["is_deleted"]:
                     logger.info("Copy - file exists in remote folder")
+                    self.job.status = 5
                 else:
                     logger.info("Copy - file doesnt exist in remote folder (deleted). go ahead upload")
                     response = self.cli.add_copy_ref(copy_ref_entry, self.processed_path)
                     self.put_into_copy_ref_store(response)
                     self.log_file_copy(response["path"])
+                    self.job.status = 3
         except rest.ErrorResponse as e:
             logger.debug(e)
             logger.info("Copy - file doesnt exist in remote folder. go ahead upload")
             response = self.cli.add_copy_ref(copy_ref_entry, self.processed_path)
             self.put_into_copy_ref_store(response)
             self.log_file_copy(response["path"])
+            self.job.status = 3
 
 
     def fetch_copy_ref_db(self, file_id):
