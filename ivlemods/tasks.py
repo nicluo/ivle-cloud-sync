@@ -3,25 +3,10 @@ import logging
 
 from ivlemods.celery import celery
 from ivlemods.database import db_session
-from ivlemods.models import User, Job
+from ivlemods.models import User, Job, IVLEFile, IVLEFolder
 from ivlemods.ivle import IvleClient
 
 logger = logging.getLogger(__name__)
-
-
-def explore_folders(user, client, json, parents):
-    for folder in json['Folders']:
-        folderName = folder['FolderName']
-        for file in folder['Files']:
-            fileName = file['FileName']
-            fileID = file['ID']
-            filePath = '/'.join(parents + [folderName] + [fileName])
-            fileURL = client.build_download_url(fileID)
-            db_session.add(Job(fileID, fileURL, 'http', user.user_id,
-                filePath))
-            db_session.commit()
-        explore_folders(user, client, folder, parents + [folderName])
-
 
 @celery.task
 def ivle_workbin_to_dropbox_job(user_id, duration=0):
@@ -30,17 +15,29 @@ def ivle_workbin_to_dropbox_job(user_id, duration=0):
         user.workbin_checked = datetime.now()
         db_session.commit()
 
+        folders = IVLEFolder.query.filter(IVLEFolder.user_id == user_id)\
+                                  .filter(IVLEFolder.sync == True)
+
         client = IvleClient(user.ivle_token)
-        modules = client.get('Modules', Duration=0, IncludeAllInfo='false')
-        for result in modules['Results']:
-            courseCode = result['CourseCode']
-            if result['isActive'] == 'Y':
-                workbins = client.get('Workbins', CourseID=result['ID'],
-                    Duration=0)
-                for workbin in workbins['Results']:
-                    title = workbin['Title']
-                    explore_folders(user, client, workbin,
-                        [courseCode + ' ' + title])
+
+        logger.info("test")
+
+        for folder in folders:
+            files = IVLEFile.query.filter(IVLEFile.user_id == user_id)\
+                                  .filter(IVLEFile.ivle_folder_id == folder.ivle_id)
+
+            for file in files:
+                job_count = Job.query.filter(Job.user_id == user_id)\
+                                     .filter(Job.file_id == file.ivle_file_id)\
+                                     .count()
+                logger.info(job_count)
+                if job_count == 0:
+                    db_session.add(Job(file.ivle_file_id,\
+                                       client.build_download_url(file.ivle_file_id),\
+                                       'http',\
+                                       user.user_id,\
+                                       '/'.join([file.file_path, file.file_name])))
+                    db_session.commit()
 
 
 @celery.task
