@@ -5,6 +5,7 @@ import traceback
 
 from dropbox import client, rest, session
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
+from datetime import datetime
 
 from ivlemods import app
 from ivlemods.celery import celery
@@ -167,18 +168,14 @@ class FileProcessOverwrite():
         meta = SH.client.file_delete(path)
         logger.debug(meta)
         logger.info("FileProcessOverwrite - file deleted")
-        try:
-            result = OnlineStore.query\
+        result = OnlineStore.query\
                       .filter(OnlineStore.source_user_id == self.check_user_id)\
-                      .filter(OnlineStore.source_file_path == self.check_path)\
-                      .one()
-            db_session.delete(result)
+                      .filter(OnlineStore.source_file_path == self.check_path)
+        if result.count():
+            for r in result:
+                db_session.delete(result)
             db_session.commit()
             logger.info("FileProcessOverwrite - file entry deleted")
-        except MultipleResultsFound as e:
-            pass
-        except NoResultFound as e:
-            pass
 
     def get_target_file_path(self):
         return self.return_path[1:]
@@ -217,7 +214,7 @@ class FileCopier():
         f.close()
 
         self.put_into_copy_ref_store(response)
-        self.log_file_copy(response["path"])
+        self.log_file_copy(response)
         self.job.status = 2
 
     def upload_copy_ref(self, copy_ref_entry):
@@ -231,14 +228,14 @@ class FileCopier():
                     logger.info("Copy - file doesnt exist in remote folder (deleted). go ahead upload")
                     response = self.cli.add_copy_ref(copy_ref_entry, self.processed_path)
                     self.put_into_copy_ref_store(response)
-                    self.log_file_copy(response["path"])
+                    self.log_file_copy(response)
                     self.job.status = 3
         except rest.ErrorResponse as e:
             logger.debug(e)
             logger.info("Copy - file doesnt exist in remote folder. go ahead upload")
             response = self.cli.add_copy_ref(copy_ref_entry, self.processed_path)
             self.put_into_copy_ref_store(response)
-            self.log_file_copy(response["path"])
+            self.log_file_copy(response)
             self.job.status = 3
 
 
@@ -271,13 +268,15 @@ class FileCopier():
         db_session.add(new_store)
         db_session.commit()
 
-    def log_file_copy(self, target_path, meta):
+    def log_file_copy(self, meta):
         #updates into ivle_file
-        file = IVLEFile.query.filter_by(user_id == user.user_id, ivle_file_id == self.job.file_id)
+        file = IVLEFile.query.filter_by(user_id == user.user_id, ivle_file_id == self.job.file_id).first()
 
+        file.dropbox_uploaded_date = datetime.now()
+        file.dropbox_revision = meta["revision"]
 
         #appends into dropbox_upload_history
-        new_history = History(self.job, target_path)
+        new_history = History(self.job, meta["path"])
         db_session.add(new_history)
         db_session.commit()
 
