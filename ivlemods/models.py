@@ -151,6 +151,8 @@ class IVLEFile(Base):
     course_code = Column(String(32))
     file_path = Column(String(256))
     file_name = Column(String(256))
+    file_type = Column(String(8))
+    upload_time = Column(DateTime)
     dropbox_uploaded_date = Column(DateTime)
     dropbox_revision = Column(Integer)
     is_deleted = Column(Boolean)
