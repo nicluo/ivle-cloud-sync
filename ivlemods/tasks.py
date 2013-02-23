@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 @celery.task
 def ivle_workbin_to_dropbox_job(user_id, duration=0):
+    logger.info("Populating dropbox jobs.")
     user = User.query.get(user_id)
     if user.workbin_checked < datetime.now() - timedelta(minutes=duration):
         user.workbin_checked = datetime.now()
@@ -20,8 +21,6 @@ def ivle_workbin_to_dropbox_job(user_id, duration=0):
 
         client = IvleClient(user.ivle_token)
 
-        logger.info("test")
-
         for folder in folders:
             files = IVLEFile.query.filter(IVLEFile.user_id == user_id)\
                                   .filter(IVLEFile.ivle_folder_id == folder.ivle_id)
@@ -30,7 +29,6 @@ def ivle_workbin_to_dropbox_job(user_id, duration=0):
                 job_count = Job.query.filter(Job.user_id == user_id)\
                                      .filter(Job.file_id == file.ivle_file_id)\
                                      .count()
-                logger.info(job_count)
                 if job_count == 0:
                     db_session.add(Job(file.ivle_file_id,\
                                        client.build_download_url(file.ivle_file_id),\

@@ -1,6 +1,7 @@
 import os
 import logging
 import requests
+import traceback
 
 from dropbox import client, rest, session
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
@@ -8,7 +9,7 @@ from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from ivlemods import app
 from ivlemods.celery import celery
 from ivlemods.database import db_session
-from ivlemods.models import User, Job, OnlineStore, History
+from ivlemods.models import User, Job, OnlineStore, History, IVLEFile
 
 logger = logging.getLogger(__name__)
 
@@ -267,11 +268,15 @@ class FileCopier():
     def put_into_copy_ref_store(self, file_metadata):
         c_ref = self.cli.create_copy_ref(file_metadata["path"])
         new_store = OnlineStore(self.job, c_ref, file_metadata)
-
         db_session.add(new_store)
         db_session.commit()
 
-    def log_file_copy(self, target_path):
+    def log_file_copy(self, target_path, meta):
+        #updates into ivle_file
+        file = IVLEFile.query.filter_by(user_id == user.user_id, ivle_file_id == self.job.file_id)
+
+
+        #appends into dropbox_upload_history
         new_history = History(self.job, target_path)
         db_session.add(new_history)
         db_session.commit()
@@ -282,5 +287,10 @@ def upload_dropbox_jobs():
     for entry in Job.query\
         .filter(Job.status == 0)\
         .all():
-        logger.info("FileCopier - Starting file transfer %s for User %s", entry.file_id, entry.user_id)
-        FileCopier(entry)
+        try:
+            logger.info("FileCopier - Starting file transfer %s for User %s", entry.file_id, entry.user_id)
+            FileCopier(entry)
+        except Exception, e:
+            logger.critical(e)
+            logger.critical(traceback.format_exc())
+
