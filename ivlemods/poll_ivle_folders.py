@@ -2,7 +2,6 @@ from ivlemods.database import db_session
 from ivlemods.models import IVLEFile, User, Job, IVLEAnnouncement, IVLEForumHeading, IVLEForumThread, IVLEFolder
 from ivlemods.ivle import IvleClient
 from datetime import datetime
-from re import escape
 import logging
 
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
@@ -54,7 +53,7 @@ def poll_ivle_folders(user_id):
                     'user_id': user_id,
                     'course_code': courseCode,
                     'ivle_workbin_id': workbin['ID'],
-                    'path': ' '.join([escape(courseCode), escape(workbin['Title'])])
+                    'path': ' '.join([courseCode.replace("/", "+"), workbin['Title']])
                 }
                 exploreFolders(workbin, args)
         #print "------------"
