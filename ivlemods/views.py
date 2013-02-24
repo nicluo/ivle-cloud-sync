@@ -6,7 +6,8 @@ from flask import g, redirect, render_template, request, session, url_for
 from ivlemods import app
 from ivlemods.ivle import IvleClient
 from ivlemods.database import db_session
-from ivlemods.models import IVLEFile, User
+from ivlemods.poll_ivle_folders import poll_ivle_folders
+from ivlemods.models import IVLEFolder, User
 
 def login_required(f):
     @wraps(f)
@@ -43,36 +44,46 @@ def ivle_callback():
     user = User.query.filter(User.ivle_uid == ivle_uid).first()
     if user:
         user.ivle_token = ivle_token
+        db_session.commit()
+        session['user_id'] = user.user_id
+        return redirect(url_for('settings'))
     else:
         ivle_email = client.get('UserEmail_Get')
         ivle_name = client.get('UserName_Get')
         user = User(ivle_uid=ivle_uid, ivle_email=ivle_email,
             ivle_name=ivle_name, ivle_token=ivle_token)
         db_session.add(user)
-    db_session.commit()
-    session['user_id'] = user.user_id
-    return redirect(url_for('associate'))
+        db_session.commit()
+        poll_ivle_folders.delay(user.user_id)
+        session['user_id'] = user.user_id
+        return redirect(url_for('associate'))
 
 
 @app.route('/associate')
 @login_required
 def associate():
-    ivle_files = g.user.ivle_files.group_by(IVLEFile.file_path).all()
+    return render_template('associate.html', user=g.user)
+
+
+@app.route('/settings')
+@login_required
+def settings():
+    ivle_folders = g.user.ivle_folders.order_by(IVLEFolder.path).all()
     modules = {}
-    for file in ivle_files:
-        directories = file.file_path.split('/')
+    for folder in ivle_folders:
+        directories = folder.path.split('/')
         module_name = directories[0]
         if module_name not in modules:
             modules[module_name] = [{
-                'directory': module_name,
-                'nesting_level': 0
-            }]
+                                        'directory': module_name,
+                                        'nesting_level': 0
+                                    }]
         modules[module_name].append({
             'directory': directories[-1],
             'nesting_level': len(directories) - 1
         })
-    print modules
-    return render_template('associate.html', user=g.user, modules=modules)
+    return render_template('settings.html', user=g.user, modules=modules)
+
 
 @app.route('/auth/dropbox/login')
 @login_required
@@ -99,7 +110,7 @@ def dropbox_callback():
     db_session.commit()
     session.pop('dropbox_request_token_key', None)
     session.pop('dropbox_request_token_secret', None)
-    return redirect(url_for('associate'))
+    return redirect(url_for('settings'))
 
 
 @app.route('/auth/dropbox/logout')
@@ -108,7 +119,7 @@ def dropbox_logout():
     g.user.dropbox_key = None
     g.user.dropbox_secret = None
     db_session.commit()
-    return redirect(url_for('associate'))
+    return redirect(url_for('settings'))
 
 
 @app.route('/logout')

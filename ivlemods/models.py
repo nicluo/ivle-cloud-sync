@@ -103,6 +103,8 @@ class IVLEFolder(Base):
     checked = Column(DateTime)
     sync = Column(Boolean)
 
+    user = relationship(User, backref=backref('ivle_folders', lazy='dynamic'))
+
     def __init__(self, meta):
         if 'parent_folder_id' in meta.keys():
             self.ivle_parent_id = meta['ivle_parent_id']
