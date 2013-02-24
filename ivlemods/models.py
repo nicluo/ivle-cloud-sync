@@ -69,28 +69,6 @@ class OnlineStore(Base):
         self.source_file_revision = uploaded_file_metadata["revision"]
 
 
-class History(Base):
-    __tablename__ = 'dropbox_upload_history'
-
-    history_id = Column(Integer, primary_key=True)
-    job_id = Column(Integer)
-    file_id = Column(String(36))
-    http_url = Column(String(1024))
-    method = Column(String(4))
-    user_id = Column(Integer)
-    target_path = Column(String(256))
-    upload_timestamp = Column(DateTime)
-
-    def __init__(self, job, target_path):
-        self.job_id = job.job_id
-        self.file_id = job.file_id
-        self.http_url = job.http_url
-        self.method = job.method
-        self.user_id = job.user_id
-        self.target_path = target_path
-        self.upload_timestamp = datetime.now()
-
-
 class IVLEModule(Base):
     __tablename__ = 'ivle_module'
 
@@ -171,6 +149,8 @@ class IVLEFile(Base):
         self.file_name = meta['file_name']
         self.checked = datetime.now()
         self.is_deleted = False
+        self.upload_time = meta['upload_time']
+        self.file_type = meta['file_type']
 
 
 class IVLEAnnouncement(Base):

@@ -10,7 +10,7 @@ from datetime import datetime
 from ivlemods import app
 from ivlemods.celery import celery
 from ivlemods.database import db_session
-from ivlemods.models import User, Job, OnlineStore, History, IVLEFile
+from ivlemods.models import User, Job, OnlineStore, IVLEFile
 
 logger = logging.getLogger(__name__)
 
@@ -57,9 +57,9 @@ class FileFetch():
             with open('cache/' + self.job.file_id) as f:
                 f.close()
                 os.remove('cache/' + self.job.file_id)
-                logger.warning("Cache - have to delete existing file.")
+                logger.debug("Cache - have to delete existing file.")
         except IOError as e:
-            logger.info("Cache - new file generated.")
+            logger.debug("Cache - new file generated.")
             #logger.critical(e)
             pass
         os.renames(cache_path, 'cache/' + self.job.file_id)
@@ -92,16 +92,16 @@ class FileProcessOverwrite():
     def find_available_path(self):
         logger.debug(self.check_path)
         if not self.target_file_exists():
-            logger.info("FileProcessOverwrite - target file doesnt exist, no need to overwrite")
+            logger.debug("FileProcessOverwrite - target file doesnt exist, no need to overwrite")
             self.return_path = self.check_path
         else:
-            logger.info("FileProcessOverwrite - target file exists")
+            logger.debug("FileProcessOverwrite - target file exists")
             if self.target_file_modified():
-                logger.info("FileProcessOverwrite - do not overwrite")
+                logger.debug("FileProcessOverwrite - do not overwrite")
                 self.make_new_path()
                 self.find_available_path()
             else:
-                logger.info("FileProcessOverwrite - overwrite")
+                logger.debug("FileProcessOverwrite - overwrite")
                 self.return_path = self.check_path
                 self.delete_target_file_path(self.check_path)
 
@@ -109,7 +109,7 @@ class FileProcessOverwrite():
         title, ext = os.path.splitext(self.check_path_original)
         self.conflict_num += 1
         self.check_path = title + " [renamed due to conflict: "\
-                            + unicode(self.conflict_num)\
+                            + str(self.conflict_num)\
                             + "]" \
                             + ext
 
@@ -123,6 +123,7 @@ class FileProcessOverwrite():
             return True
         except rest.ErrorResponse as e:
             #logger.error(e)
+            #file doesn't exist
             return False
 
 
@@ -140,12 +141,12 @@ class FileProcessOverwrite():
             if meta["revision"] == self.check_revision:
                 #the revision is consistent with the one we uploaded
                 #the user has not modified
-                logger.info("FileProcessOverwrite - file not modified by user")
+                logger.debug("FileProcessOverwrite - file not modified by user")
                 return False
             else:
                 #revision is inconsistent
                 #user has modified
-                logger.info("FileProcessOverwrite - file modified by user")
+                logger.debug("FileProcessOverwrite - file modified by user")
                 return True
 
         except MultipleResultsFound as e:
@@ -167,7 +168,7 @@ class FileProcessOverwrite():
         logger.info("FileProcessOverwrite - deleting file...")
         meta = SH.client.file_delete(path)
         logger.debug(meta)
-        logger.info("FileProcessOverwrite - file deleted")
+        logger.debug("FileProcessOverwrite - file deleted")
         result = OnlineStore.query\
                       .filter(OnlineStore.source_user_id == self.check_user_id)\
                       .filter(OnlineStore.source_file_path == self.check_path)
@@ -175,7 +176,7 @@ class FileProcessOverwrite():
             for r in result:
                 db_session.delete(result)
             db_session.commit()
-            logger.info("FileProcessOverwrite - file entry deleted")
+            logger.debug("FileProcessOverwrite - file entry deleted")
 
     def get_target_file_path(self):
         return self.return_path[1:]
@@ -195,12 +196,12 @@ class FileCopier():
             if self.check_copy_ref_validity(entry):
                 try:
                     self.upload_copy_ref(entry.dropbox_copy_ref)
-                    logger.info("Copy - copy ref successful")
+                    logger.debug("Copy - copy ref successful")
                     return
                 except rest.ErrorResponse as e:
-                    logger.info("Copy - copy ref failed.")
+                    logger.debug("Copy - copy ref failed.")
                     self.remove_copy_ref_db(entry)
-                    logger.info("Copy - Invalid entry removed.")
+                    logger.debug("Copy - Invalid entry removed.")
             else:
                 self.remove_copy_ref_db(entry)
         self.upload_file()
@@ -262,22 +263,18 @@ class FileCopier():
             logger.warning("Copy - copy-ref error response...")
             return False
 
-    def put_into_copy_ref_store(self, file_metadata):
-        c_ref = self.cli.create_copy_ref(file_metadata["path"])
-        new_store = OnlineStore(self.job, c_ref, file_metadata)
+    def put_into_copy_ref_store(self, meta):
+        c_ref = self.cli.create_copy_ref(meta["path"])
+        new_store = OnlineStore(self.job, c_ref, meta)
         db_session.add(new_store)
         db_session.commit()
 
     def log_file_copy(self, meta):
-        #updates into ivle_file
+        #updates succesful uploads into ivle_file
         file = IVLEFile.query.filter_by(user_id == user.user_id, ivle_file_id == self.job.file_id).first()
-
         file.dropbox_uploaded_date = datetime.now()
         file.dropbox_revision = meta["revision"]
 
-        #appends into dropbox_upload_history
-        new_history = History(self.job, meta["path"])
-        db_session.add(new_history)
         db_session.commit()
 
 

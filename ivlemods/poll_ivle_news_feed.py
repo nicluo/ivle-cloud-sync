@@ -242,15 +242,11 @@ def exploreFolders(json, parents, ivle_workbin_id, client, user_id, course_code)
                                           'ivle_file_id': file['ID'],\
                                           'ivle_folder_id': folder['ID'],\
                                           'file_path': file_path,\
-                                          'file_name': file['FileName']})
+                                          'file_name': file['FileName'],\
+                                          'file_type': file['FileType'],\
+                                          'upload_time': datetime.strptime(file['UploadTime_js'][:19], "%Y-%m-%dT%H:%M:%S")})
                 db_session.add(new_ivle_file)
                 db_session.commit()
                 #db_session.add(Job(fileID, fileURL, 'http', self.user.user_id, filePath))
                 #db_session.commit()
         exploreFolders(folder, parents + [folder_name], ivle_workbin_id, client, user_id, course_code)
-
-
-print get_announcements(1, 2)
-print get_forum_headings(1, 2)
-print get_forum_threads(1, 2)
-print get_files(1, 0)
