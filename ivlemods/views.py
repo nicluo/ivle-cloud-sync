@@ -13,9 +13,9 @@ def login_required(f):
     def decorated_function(*args, **kwargs):
         if 'user_id' in session:
             g.user = User.query.get(session['user_id'])
-        if not g.user:
-            return redirect(url_for('ivle_login'))
-        return f(*args, **kwargs)
+            if g.user:
+                return f(*args, **kwargs)
+        return redirect(url_for('ivle_login'))
     return decorated_function
 
 
