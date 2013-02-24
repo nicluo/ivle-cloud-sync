@@ -106,7 +106,7 @@ class IVLEFolder(Base):
     user = relationship(User, backref=backref('ivle_folders', lazy='dynamic'))
 
     def __init__(self, meta):
-        if 'parent_folder_id' in meta.keys():
+        if 'ivle_parent_id' in meta.keys():
             self.ivle_parent_id = meta['ivle_parent_id']
         self.user_id = meta['user_id']
         self.course_code = meta['course_code']
