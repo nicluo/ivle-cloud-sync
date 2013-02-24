@@ -1,10 +1,13 @@
-from ivlemods.database import db_session
-from ivlemods.models import IVLEFile, User, Job, IVLEAnnouncement, IVLEForumHeading, IVLEForumThread, IVLEFolder
-from ivlemods.ivle import IvleClient
 from datetime import datetime
 import logging
 
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
+
+from ivlemods.celery import celery
+from ivlemods.database import db_session
+from ivlemods.models import IVLEFile, User, Job, IVLEAnnouncement, IVLEForumHeading, IVLEForumThread, IVLEFolder
+from ivlemods.ivle import IvleClient
+
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +39,7 @@ def get_folders(user_id, duration=0):
     return json
 
 
+@celery.task
 def poll_ivle_folders(user_id):
     logger.info("POLL - IVLE folders for user %s.", user_id)
     #get server values
@@ -60,8 +64,8 @@ def poll_ivle_folders(user_id):
 
 
 def exploreFolders(json, args):
-    meta = dict.copy(args)
     for folder in json['Folders']:
+        meta = dict.copy(args)
         meta['name'] = folder['FolderName']
         meta['path'] = '/'.join([meta['path'], meta['name']])
         meta['ivle_id'] = folder['ID']

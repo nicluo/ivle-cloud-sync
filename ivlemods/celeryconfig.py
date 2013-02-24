@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from celery.schedules import crontab
 
 BROKER_URL = 'amqp://'
-CELERY_IMPORTS = ('ivlemods.dist', 'ivlemods.tasks')
+CELERY_IMPORTS = ('ivlemods.dist', 'ivlemods.poll_ivle_folders', 'ivlemods.tasks')
 CELERY_TIMEZONE = 'Singapore'
 CELERYBEAT_SCHEDULE = {
     'every-five-minutes': {
