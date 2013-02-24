@@ -1,3 +1,4 @@
+*.log
 *.pyc
 cache
 celerybeat-schedule
