@@ -70,6 +70,7 @@ def associate():
 def settings():
     ivle_folders = g.user.ivle_folders.order_by(IVLEFolder.path).all()
     modules = {}
+    folders_sync_count = {}
     for folder in ivle_folders:
         directories = folder.path.split('/')
         module_name = directories[0]
@@ -78,10 +79,16 @@ def settings():
                                         'directory': module_name,
                                         'nesting_level': 0
                                     }]
+            folders_sync_count[module_name] = 0
         modules[module_name].append({
             'directory': directories[-1],
-            'nesting_level': len(directories) - 1
+            'nesting_level': len(directories) - 1,
+            'sync': folder.sync
         })
+        folders_sync_count[module_name] += 1
+    for module_name in modules:
+        if len(modules[module_name]) == folders_sync_count[module_name] + 1:
+            modules[module_name][0]['sync'] = True
     return render_template('settings.html', user=g.user, modules=modules)
 
 

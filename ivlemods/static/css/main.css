@@ -13,14 +13,14 @@
   font-weight: normal;
 }
 
-.nest1 .ui-btn-text {
+.ui-btn[data-nest="1"] .ui-btn-text {
   margin-left: 16px;
 }
 
-.nest2 .ui-btn-text {
+.ui-btn[data-nest="2"] .ui-btn-text {
   margin-left: 32px;
 }
 
-.nest3 .ui-btn-text {
+.ui-btn[data-nest="3"] .ui-btn-text {
   margin-left: 48px;
 }

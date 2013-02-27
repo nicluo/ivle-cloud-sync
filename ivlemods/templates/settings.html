@@ -21,7 +21,8 @@
     {% for module in modules.values() %}
     <fieldset data-role="controlgroup">
       {% for directory in module %}
-      <label class="nest{{ directory['nesting_level'] }}"><input type="checkbox" data-mini="true"/>
+      <label data-nest="{{ directory['nesting_level'] }}">
+        <input type="checkbox" data-mini="true" {% if directory['sync'] %}checked{% endif %} />
         {{ directory['directory'] }}
       </label>
       {% endfor %}
@@ -30,4 +31,53 @@
     <button data-inline="true" type="submit" name="submit" value="submit">Submit</button>
   </form>
 </div>
+
+<script>
+  function updateAncestors(el, checked, nestingLevel) {
+    var all = true;
+    var parent;
+    el.prevAll().each(function() {
+      if ($(this).children('.ui-btn').data('nest') === nestingLevel - 1) {
+        parent = $(this);
+        return false;
+      }
+      all = $(this).children('input[type="checkbox"]').prop('checked') === checked;
+      return all;
+    });
+    if (all) {
+      el.nextAll().each(function() {
+        if ($(this).children('.ui-btn').data('nest') === nestingLevel - 1) {
+          return false;
+        }
+        all = $(this).children('input[type="checkbox"]').prop('checked') === checked;
+        return all;
+      });
+    }
+    if (all) {
+      if (parent) {
+        parent.children('input[type="checkbox"]').prop('checked', checked).checkboxradio('refresh');
+        updateAncestors(parent, checked, nestingLevel - 1);
+      }
+    } else {
+      el.prevAll().each(function() {
+        if ($(this).children('.ui-btn').data('nest') === nestingLevel - 1) {
+          nestingLevel -= 1;
+          $(this).children('input[type="checkbox"]').prop('checked', false).checkboxradio('refresh');
+        }
+      });
+    }
+  }
+
+  $('input[type="checkbox"]').click(function() {
+    var checked = $(this).prop('checked');
+    var nestingLevel = $(this).parent().children('.ui-btn').data('nest');
+    $(this).parent().nextAll().each(function() {
+      if ($(this).children('.ui-btn').data('nest') == nestingLevel) {
+          return false;
+      }
+      $(this).children('input[type="checkbox"]').prop('checked', checked).checkboxradio('refresh');
+    });
+    updateAncestors($(this).parent(), checked, nestingLevel);
+  });
+</script>
 {% endblock %}
