@@ -71,7 +71,9 @@ def settings():
     ivle_folders = g.user.ivle_folders.order_by(IVLEFolder.path).all()
     if request.method == 'POST':
         for folder in ivle_folders:
-            folder.sync = str(folder.folder_id) in request.form
+            if folder.sync != str(folder.folder_id) in request.form:
+                folder.sync = str(folder.folder_id) in request.form
+                # TODO: further processing if folder sync status changes
         db_session.commit()
     modules = {}
     folders_sync_count = {}
