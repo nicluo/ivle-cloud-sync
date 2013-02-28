@@ -22,7 +22,8 @@
     <fieldset data-role="controlgroup">
       {% for directory in module %}
       <label data-nest="{{ directory['nesting_level'] }}">
-        <input type="checkbox" data-mini="true" {% if directory['sync'] %}checked{% endif %} />
+        <input type="checkbox" data-mini="true" value="{{ directory['id'] }}"
+               name="{{ directory['id'] }}" {% if directory['sync'] %}checked{% endif %} />
         {{ directory['directory'] }}
       </label>
       {% endfor %}

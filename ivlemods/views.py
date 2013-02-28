@@ -65,10 +65,14 @@ def associate():
     return render_template('associate.html', user=g.user)
 
 
-@app.route('/settings')
+@app.route('/settings', methods=['GET', 'POST'])
 @login_required
 def settings():
     ivle_folders = g.user.ivle_folders.order_by(IVLEFolder.path).all()
+    if request.method == 'POST':
+        for folder in ivle_folders:
+            folder.sync = str(folder.folder_id) in request.form
+        db_session.commit()
     modules = {}
     folders_sync_count = {}
     for folder in ivle_folders:
@@ -82,10 +86,12 @@ def settings():
             folders_sync_count[module_name] = 0
         modules[module_name].append({
             'directory': directories[-1],
+            'id': folder.folder_id,
             'nesting_level': len(directories) - 1,
             'sync': folder.sync
         })
-        folders_sync_count[module_name] += 1
+        if folder.sync:
+            folders_sync_count[module_name] += 1
     for module_name in modules:
         if len(modules[module_name]) == folders_sync_count[module_name] + 1:
             modules[module_name][0]['sync'] = True
