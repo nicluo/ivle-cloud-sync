@@ -71,12 +71,10 @@ def associate():
 def settings():
     ivle_folders = g.user.ivle_folders.order_by(IVLEFolder.path).all()
     if request.method == 'POST':
-        #print(request.form)
         bool_unsub = False
         bool_sub = False
         for folder in ivle_folders:
-            if (folder.sync == 1) != str(folder.folder_id) in request.form:
-                #print(folder.folder_id)
+            if folder.sync != (str(folder.folder_id) in request.form):
                 folder.sync = str(folder.folder_id) in request.form
                 sync = folder.sync
                 #triggers job resuming
@@ -84,8 +82,6 @@ def settings():
                 #triggers job pausing
                 bool_unsub = bool_unsub or (sync == 0)
         db_session.commit()
-        #print(bool_sub)
-        #print(bool_unsub)
         if bool_sub:
             tasks.resume_user_dropbox_jobs.delay(g.user.user_id)
         if bool_unsub:
