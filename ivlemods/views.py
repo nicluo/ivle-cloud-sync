@@ -4,6 +4,7 @@ from dropbox.session import DropboxSession
 from flask import g, redirect, render_template, request, session, url_for
 
 from ivlemods import app
+from ivlemods import tasks
 from ivlemods.ivle import IvleClient
 from ivlemods.database import db_session
 from ivlemods.poll_ivle_folders import poll_ivle_folders
@@ -70,11 +71,27 @@ def associate():
 def settings():
     ivle_folders = g.user.ivle_folders.order_by(IVLEFolder.path).all()
     if request.method == 'POST':
+        #print(request.form)
+        bool_unsub = False
+        bool_sub = False
         for folder in ivle_folders:
-            if folder.sync != str(folder.folder_id) in request.form:
+            if (folder.sync == 1) != str(folder.folder_id) in request.form:
+                #print(folder.folder_id)
                 folder.sync = str(folder.folder_id) in request.form
-                # TODO: further processing if folder sync status changes
+                sync = folder.sync
+                #triggers job resuming
+                bool_sub = bool_sub or (sync == 1)
+                #triggers job pausing
+                bool_unsub = bool_unsub or (sync == 0)
         db_session.commit()
+        #print(bool_sub)
+        #print(bool_unsub)
+        if bool_sub:
+            tasks.resume_user_dropbox_jobs.delay(g.user.user_id)
+        if bool_unsub:
+            tasks.halt_user_dropbox_jobs.delay(g.user.user_id)
+
+
     modules = {}
     folders_sync_count = {}
     for folder in ivle_folders:
