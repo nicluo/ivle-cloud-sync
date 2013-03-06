@@ -11,7 +11,7 @@ from ivlemods.ivle import IvleClient
 
 logger = logging.getLogger(__name__)
 
-def get_folders(user_id, duration=0):
+def request_folders(user_id, duration=0):
     logger.info("GET - Folders for user %s.", user_id)
     collection = IVLEFile.query.filter(IVLEFolder.user_id == user_id)\
         .filter(IVLEFile.is_deleted == False)\
@@ -26,17 +26,6 @@ def get_folders(user_id, duration=0):
         collection = IVLEFolder.query.filter(IVLEFolder.user_id == user_id)\
             .filter(IVLEFolder.is_deleted == False)\
             .all()
-    json = []
-    for elem in collection:
-        json.append({"type": "folder",
-                     "ivle_id": elem.ivle_id,
-                     "parent_id": elem.ivle_parent_id,
-                     "workbin_id": elem.ivle_workbin_id,
-                     "course_code": elem.course_code,
-                     "path": elem.path,
-                     "name": elem.name
-                    })
-    return json
 
 
 @celery.task

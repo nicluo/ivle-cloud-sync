@@ -146,7 +146,6 @@ class IVLEFile(Base):
         self.ivle_workbin_id = meta['ivle_workbin_id']
         self.ivle_file_id = meta['ivle_file_id']
         self.ivle_folder_id = meta['ivle_folder_id']
-        self.course_code = meta['course_code']
         self.file_path = meta['file_path']
         self.file_name = meta['file_name']
         self.checked = datetime.now()
