@@ -35,6 +35,9 @@ def poll_ivle_folders(user_id):
     user = User.query.filter(User.user_id == user_id).one()
     client = IvleClient(user.ivle_token)
 
+    folder_list = []
+    file_list = []
+
     modules = client.get('Modules', Duration=0, IncludeAllInfo='false')
     for result in modules['Results']:
         courseCode = result['CourseCode']
@@ -48,13 +51,32 @@ def poll_ivle_folders(user_id):
                     'ivle_workbin_id': workbin['ID'],
                     'path': ' '.join([courseCode.replace("/", "+"), workbin['Title']])
                 }
-                exploreFolders(workbin, args)
-        #print "------------"
+                result = exploreFolders(workbin, args)
+                file_list += result['file_list']
+                folder_list += result['folder_list']
+
+    folder_collection = IVLEFolder.query.filter_by(user_id = user_id).all()
+    for folder in folder_collection:
+        if folder.ivle_id in folder_list:
+            folder.is_deleted = False
+        else:
+            folder.is_deleted = True
+
+    file_collection = IVLEFile.query.filter_by(user_id = user_id).all()
+    for file in file_collection:
+        if file.ivle_file_id in file_list:
+            file.is_deleted = False
+        else:
+            file.is_deleted = True
+
+    db_session.commit()
 
 
 def exploreFolders(json, args):
     user = User.query.filter(User.user_id == args['user_id']).one()
     client = IvleClient(user.ivle_token)
+    folder_list = []
+    file_list = []
     for folder in json['Folders']:
         #add to IVLEFolder
         meta = dict.copy(args)
@@ -75,6 +97,8 @@ def exploreFolders(json, args):
             db_session.add(new_elem)
             db_session.commit()
         meta['ivle_parent_id'] = meta['ivle_id']
+        folder_list.append(meta['ivle_id'])
+
         for file in folder['Files']:
             #add to IVLEFile
             file_id = file['ID']
@@ -103,4 +127,8 @@ def exploreFolders(json, args):
                                           'upload_time': datetime.strptime(file['UploadTime_js'][:19], "%Y-%m-%dT%H:%M:%S")})
                 db_session.add(new_ivle_file)
                 db_session.commit()
-        exploreFolders(folder, meta)
+            file_list.append(file_id)
+        result = exploreFolders(folder, meta)
+        folder_list += result['folder_list']
+        file_list += result['file_list']
+    return {'folder_list': folder_list, 'file_list': file_list}
