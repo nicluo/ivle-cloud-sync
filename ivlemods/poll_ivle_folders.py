@@ -64,7 +64,10 @@ def poll_ivle_folders(user_id):
 
 
 def exploreFolders(json, args):
+    user = User.query.filter(User.user_id == args['user_id']).one()
+    client = IvleClient(user.ivle_token)
     for folder in json['Folders']:
+        #add to IVLEFolder
         meta = dict.copy(args)
         meta['name'] = folder['FolderName']
         meta['path'] = '/'.join([meta['path'], meta['name']])
@@ -83,4 +86,32 @@ def exploreFolders(json, args):
             db_session.add(new_elem)
             db_session.commit()
         meta['ivle_parent_id'] = meta['ivle_id']
+        for file in folder['Files']:
+            #add to IVLEFile
+            file_id = file['ID']
+            file_path = meta['path']
+            file_url = client.build_download_url(file_id)
+            #print file_path
+            #print file
+            try:
+                db_file = IVLEFile.query\
+                .filter(IVLEFile.user_id == meta['user_id'])\
+                .filter(IVLEFile.ivle_file_id == file_id)\
+                .one()
+                db_file.checked = datetime.now()
+                db_session.commit()
+            except MultipleResultsFound as e:
+                pass
+            except NoResultFound as e:
+                new_ivle_file = IVLEFile({'user_id': meta['user_id'],\
+                                          'course_code': meta['course_code'],\
+                                          'ivle_workbin_id': meta['ivle_workbin_id'],\
+                                          'ivle_file_id': file_id,\
+                                          'ivle_folder_id': meta['ivle_id'],\
+                                          'file_path': meta['path'],\
+                                          'file_name': file['FileName'],\
+                                          'file_type': file['FileType'],\
+                                          'upload_time': datetime.strptime(file['UploadTime_js'][:19], "%Y-%m-%dT%H:%M:%S")})
+                db_session.add(new_ivle_file)
+                db_session.commit()
         exploreFolders(folder, meta)
