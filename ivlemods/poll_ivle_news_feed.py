@@ -94,33 +94,6 @@ def get_forum_threads(user_id, duration=0):
     return json
 
 
-def get_files(user_id, duration=0):
-    logger.info("GET - Files for user %s.", user_id)
-    db_files = IVLEFile.query.filter(IVLEFile.user_id == user_id)\
-        .filter(IVLEFile.is_deleted == False)\
-        .all()
-    poll = False
-    for elem in db_files:
-        time_diff = datetime.now() - elem.checked
-        if time_diff.total_seconds() > duration * 60:
-            poll = True
-    if poll or len(db_files) == 0:
-        poll_news_feed(user_id)
-        db_files = IVLEFile.query.filter(IVLEFile.user_id == user_id)\
-            .filter(IVLEFile.is_deleted == False)\
-            .all()
-    json = []
-    for elem in db_files:
-        json.append({"type": "file",
-                     "ivle_id": elem.ivle_file_id,
-                     "workbin_id": elem.ivle_workbin_id,
-                     "course_code": elem.course_code,
-                     "file_path": elem.file_path,
-                     "file_name": elem.file_name
-        })
-    return json
-
-
 def poll_news_feed(user_id):
     logger.info("POLL - IVLE news feed for user %s.", user_id)
     #get server values
