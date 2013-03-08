@@ -19,6 +19,9 @@ class SessionHandler():
     def __init__(self, user_id):
         user = User.query.get(user_id)
         logger.debug("Session - logging in as user %s", user.user_id)
+        if user.dropbox_key == None or user.dropbox_secret == None:
+            raise Exception("DROPBOX_USR_ERR")
+
         sess = session.DropboxSession(app.config['DROPBOX_APP_KEY'],
             app.config['DROPBOX_APP_SECRET'], app.config['DROPBOX_ACCESS_TYPE'])
         sess.set_token(user.dropbox_key, user.dropbox_secret)
@@ -30,8 +33,6 @@ class FileFetch():
         self.job = job
         if self.job.method == 'http':
             self.download_from_http()
-        elif self.job.method == 'ivle':
-            self.download_from_ivle()
 
     def check_cache(self):
         pass
@@ -108,12 +109,10 @@ class FileProcessOverwrite():
     def make_new_path(self):
         title, ext = os.path.splitext(self.check_path_original)
         self.conflict_num += 1
-        self.check_path = title + " [renamed due to conflict: "\
-                            + str(self.conflict_num)\
-                            + "]" \
-                            + ext
+        self.check_path = title + str(self.conflict_num) + ext
 
     def target_file_exists(self):
+        #checks if file exists in the user dropbox directory
         SH = SessionHandler(self.check_user_id)
         try:
             meta = SH.client.metadata(self.check_path)
@@ -122,8 +121,6 @@ class FileProcessOverwrite():
                     return False
             return True
         except rest.ErrorResponse as e:
-            #logger.error(e)
-            #file doesn't exist
             return False
 
 
@@ -165,9 +162,8 @@ class FileProcessOverwrite():
 
     def delete_target_file_path(self, path):
         SH = SessionHandler(self.check_user_id)
-        logger.info("FileProcessOverwrite - deleting file...")
+        logger.debug("FileProcessOverwrite - deleting file...")
         meta = SH.client.file_delete(path)
-        logger.debug(meta)
         logger.debug("FileProcessOverwrite - file deleted")
         result = OnlineStore.query\
                       .filter(OnlineStore.source_user_id == self.check_user_id)\
@@ -184,31 +180,38 @@ class FileProcessOverwrite():
 
 
 class FileCopier():
-    def __init__(self, job):
-        self.job = job
-        self.job.status = 1
-        FPO = FileProcessOverwrite(job.user_id, job.target_path)
-        self.processed_path = FPO.get_target_file_path()
+    def __init__(self, job_id):
+        self.job_id = job_id
 
+    @celery.task
+    def start(self):
+        self.job = Job.query.filter_by(job_id = self.job_id).first()
+        self.job.status = 1
+        db_session.commit()
         self.SH = SessionHandler(self.job.user_id)
         self.cli = self.SH.client
+        self.processed_path = FileProcessOverwrite(self.job.user_id, self.job.target_path).get_target_file_path()
         for entry in self.fetch_copy_ref_db(self.job.file_id):
             if self.check_copy_ref_validity(entry):
                 try:
                     self.upload_copy_ref(entry.dropbox_copy_ref)
-                    logger.debug("Copy - copy ref successful")
+                    logger.info("Copy - copy ref successful")
+                    self.job.status = 3
+                    db_session.commit()
                     return
                 except rest.ErrorResponse as e:
-                    logger.debug("Copy - copy ref failed.")
+                    logger.info("Copy - copy ref failed.")
                     self.remove_copy_ref_db(entry)
                     logger.debug("Copy - Invalid entry removed.")
             else:
                 self.remove_copy_ref_db(entry)
         self.upload_file()
+        self.job.status = 2
+        db_session.commit()
 
 
     def upload_file(self):
-        logger.info("Copy - Uploading Normally.")
+        logger.debug("Copy - Uploading Normally.")
         FileFetch(self.job)
         f = open("cache/" + self.job.file_id, 'rb')
         response = self.cli.put_file(self.processed_path, f)
@@ -216,28 +219,25 @@ class FileCopier():
 
         self.put_into_copy_ref_store(response)
         self.log_file_copy(response)
-        self.job.status = 2
+
 
     def upload_copy_ref(self, copy_ref_entry):
         try:
             meta = self.cli.metadata(self.processed_path)
             if "is_deleted" in meta.keys():
                 if not meta["is_deleted"]:
-                    logger.info("Copy - file exists in remote folder")
-                    self.job.status = 5
+                    raise Exception("Copy - file exists in remote folder (should be detected by FileProcessOverwirte)")
                 else:
-                    logger.info("Copy - file doesnt exist in remote folder (deleted). go ahead upload")
+                    logger.debug("Copy - file doesnt exist in remote folder (deleted). go ahead upload")
                     response = self.cli.add_copy_ref(copy_ref_entry, self.processed_path)
                     self.put_into_copy_ref_store(response)
                     self.log_file_copy(response)
-                    self.job.status = 3
         except rest.ErrorResponse as e:
             logger.debug(e)
-            logger.info("Copy - file doesnt exist in remote folder. go ahead upload")
+            logger.debug("Copy - file doesnt exist in remote folder. go ahead upload")
             response = self.cli.add_copy_ref(copy_ref_entry, self.processed_path)
             self.put_into_copy_ref_store(response)
             self.log_file_copy(response)
-            self.job.status = 3
 
 
     def fetch_copy_ref_db(self, file_id):
@@ -250,13 +250,12 @@ class FileCopier():
 
     def check_copy_ref_validity(self, copy_ref_entry):
         try:
-            SH = SessionHandler(copy_ref_entry.source_user_id)
-            meta = SH.client.metadata(copy_ref_entry.source_file_path)
+            meta = self.cli.metadata(copy_ref_entry.source_file_path)
             if meta["revision"] == copy_ref_entry.source_file_revision:
-                logger.info("Copy - copy-ref is valid!")
+                logger.debug("Copy - copy-ref is valid!")
                 return True
             else:
-                logger.info("Copy - copy-ref is not valid!")
+                logger.debug("Copy - copy-ref is not valid!")
                 return False
         except rest.ErrorResponse as e:
             logger.debug(e)
@@ -271,10 +270,9 @@ class FileCopier():
 
     def log_file_copy(self, meta):
         #updates succesful uploads into ivle_file
-        file = IVLEFile.query.filter_by(user_id == user.user_id, ivle_file_id == self.job.file_id).first()
+        file = IVLEFile.query.filter_by(user_id = self.job.user_id, ivle_file_id = self.job.file_id).first()
         file.dropbox_uploaded_date = datetime.now()
         file.dropbox_revision = meta["revision"]
-
         db_session.commit()
 
 
@@ -285,7 +283,22 @@ def upload_dropbox_jobs():
         .all():
         try:
             logger.info("FileCopier - Starting file transfer %s for User %s", entry.file_id, entry.user_id)
-            FileCopier(entry)
+            fc = FileCopier(entry.job_id)
+            FileCopier.start.delay(fc)
+        except Exception, e:
+            logger.critical(e)
+            logger.critical(traceback.format_exc())
+
+@celery.task
+def upload_user_dropbox_jobs(user_id):
+    for entry in Job.query\
+        .filter_by(status = 0)\
+        .filter_by(user_id = user_id)\
+        .all():
+        try:
+            logger.info("FileCopier - Starting file transfer %s for User %s", entry.file_id, entry.user_id)
+            fc = FileCopier(entry.job_id)
+            FileCopier.start.delay(fc)
         except Exception, e:
             logger.critical(e)
             logger.critical(traceback.format_exc())
