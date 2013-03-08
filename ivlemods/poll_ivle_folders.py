@@ -30,7 +30,7 @@ def request_folders(user_id, duration=0):
 
 @celery.task
 def poll_ivle_folders(user_id):
-    logger.info("POLL - IVLE folders for user %s.", user_id)
+    logger.info("POLL - IVLE files, folders for user %s.", user_id)
     #get server values
     user = User.query.filter(User.user_id == user_id).one()
     client = IvleClient(user.ivle_token)
