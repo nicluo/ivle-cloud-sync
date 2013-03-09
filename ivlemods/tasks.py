@@ -2,8 +2,10 @@ from datetime import datetime, timedelta
 import logging
 
 from ivlemods.celery import celery
+from ivlemods.dist import upload_dropbox_jobs
 from ivlemods.database import db_session
 from ivlemods.models import User, Job, IVLEFile, IVLEFolder
+from ivlemods.poll_ivle_folders import poll_ivle_folders
 from ivlemods.ivle import IvleClient
 
 logger = logging.getLogger(__name__)
@@ -84,3 +86,13 @@ def ivle_workbin_to_dropbox_jobs(duration=0):
             User.workbin_checked < datetime.now() - timedelta(minutes=duration)
         ).values(User.user_id)]
     ).delay()
+
+@celery.task
+def poll_ivle_folders_for_all_users():
+    poll_ivle_folders.map(
+        [id for id, in User.query.values(User.user_id)]
+    ).delay()
+
+one_task_to_rule_them_all = (poll_ivle_folders_for_all_users.si() |
+                             ivle_workbin_to_dropbox_jobs.si(0) |
+                             upload_dropbox_jobs.si())
