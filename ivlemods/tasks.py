@@ -35,6 +35,7 @@ def ivle_workbin_to_dropbox_job(user_id, duration=0):
                                        'http',\
                                        user.user_id,\
                                        '/'.join([file.file_path, file.file_name])))
+                    file.dropbox_queued = datetime.now()
                     db_session.commit()
 
 @celery.task
