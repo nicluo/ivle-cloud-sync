@@ -92,6 +92,7 @@ def poll_ivle_folders_for_all_users():
         [id for id, in User.query.values(User.user_id)]
     ).delay()
 
-one_task_to_rule_them_all = (poll_ivle_folders_for_all_users.si() |
-                             ivle_workbin_to_dropbox_jobs.si(0) |
-                             upload_dropbox_jobs.si())
+@celery.task
+def one_task_to_rule_them_all():
+    (poll_ivle_folders_for_all_users.si() | ivle_workbin_to_dropbox_jobs.si(0) |
+    upload_dropbox_jobs.si()).delay()
