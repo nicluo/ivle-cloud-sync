@@ -79,8 +79,9 @@ class FileFetch():
         return check_path
 
 class FileProcessOverwrite():
-    def __init__(self, dropbox_user_id, check_path):
-        self.check_user_id = dropbox_user_id
+    def __init__(self, user_id, dropbox_client, check_path):
+        self.check_user_id = user_id
+        self.client = dropbox_client
         self.check_revision = 0
         self.check_path = "/" + check_path
         #self.check_path_original used for generating new renames
@@ -113,9 +114,8 @@ class FileProcessOverwrite():
 
     def target_file_exists(self):
         #checks if file exists in the user dropbox directory
-        SH = SessionHandler(self.check_user_id)
         try:
-            meta = SH.client.metadata(self.check_path)
+            meta = self.client.metadata(self.check_path)
             if unicode('is_deleted') in meta.keys():
                 if meta[unicode("is_deleted")]:
                     return False
@@ -126,8 +126,7 @@ class FileProcessOverwrite():
 
     def target_file_modified(self):
         #if the file is in online store, and copy ref validates - file was never modified by user.
-        SH = SessionHandler(self.check_user_id)
-        meta = SH.client.metadata(self.check_path)
+        meta = self.client.metadata(self.check_path)
         try:
             result = OnlineStore.query\
                       .filter(OnlineStore.source_user_id == self.check_user_id)\
@@ -161,9 +160,8 @@ class FileProcessOverwrite():
             return True
 
     def delete_target_file_path(self, path):
-        SH = SessionHandler(self.check_user_id)
         logger.debug("FileProcessOverwrite - deleting file...")
-        meta = SH.client.file_delete(path)
+        meta = self.client.file_delete(path)
         logger.debug("FileProcessOverwrite - file deleted")
         result = OnlineStore.query\
                       .filter(OnlineStore.source_user_id == self.check_user_id)\
@@ -185,29 +183,49 @@ class FileCopier():
 
     @celery.task
     def start(self):
-        self.job = Job.query.filter_by(job_id = self.job_id).first()
-        self.job.status = 1
-        db_session.commit()
-        self.SH = SessionHandler(self.job.user_id)
-        self.cli = self.SH.client
-        self.processed_path = FileProcessOverwrite(self.job.user_id, self.job.target_path).get_target_file_path()
-        for entry in self.fetch_copy_ref_db(self.job.file_id):
-            if self.check_copy_ref_validity(entry):
-                try:
-                    self.upload_copy_ref(entry.dropbox_copy_ref)
-                    logger.info("Copy - copy ref successful")
-                    self.job.status = 3
-                    db_session.commit()
-                    return
-                except rest.ErrorResponse as e:
-                    logger.info("Copy - copy ref failed.")
+        try:
+            self.job = Job.query.filter_by(job_id = self.job_id).first()
+
+            #check that it hasn't been paused in the meantime
+            if self.job.status == 6:
+                logger.info("job has been paused.")
+                return
+
+
+            self.SH = SessionHandler(self.job.user_id)
+            self.cli = self.SH.client
+            self.processed_path = FileProcessOverwrite(self.job.user_id, self.cli, self.job.target_path).get_target_file_path()
+            for entry in self.fetch_copy_ref_db(self.job.file_id):
+                if self.check_copy_ref_validity(entry):
+                    try:
+                        self.upload_copy_ref(entry.dropbox_copy_ref)
+                        logger.info("Copy - copy ref successful")
+                        self.job.status = 3
+                        db_session.commit()
+                        return
+                    except rest.ErrorResponse as e:
+                        logger.info("Copy - copy ref failed.")
+                        self.remove_copy_ref_db(entry)
+                        logger.debug("Copy - Invalid entry removed.")
+                else:
                     self.remove_copy_ref_db(entry)
-                    logger.debug("Copy - Invalid entry removed.")
+            self.upload_file()
+            self.job.status = 2
+            db_session.commit()
+
+        #catch exceptions, paused jobs, logging,
+        except Exception, e:
+            if e.args[0] == "DROPBOX_USR_ERR":
+                logger.warning("Dropbox Auth not found.")
+                self.job.status = 6
+                db_session.commit()
+                return
             else:
-                self.remove_copy_ref_db(entry)
-        self.upload_file()
-        self.job.status = 2
-        db_session.commit()
+                logger.critical("dist failed")
+                logger.critical(e.args)
+                logger.critical(e.message)
+                logger.critical(traceback.format_exc())
+                raise e
 
 
     def upload_file(self):
@@ -278,28 +296,19 @@ class FileCopier():
 
 @celery.task
 def upload_dropbox_jobs():
-    for entry in Job.query\
-        .filter(Job.status == 0)\
-        .all():
-        try:
-            logger.info("FileCopier - Starting file transfer %s for User %s", entry.file_id, entry.user_id)
-            fc = FileCopier(entry.job_id)
-            FileCopier.start.delay(fc)
-        except Exception, e:
-            logger.critical(e)
-            logger.critical(traceback.format_exc())
+    for entry in Job.query.filter_by(status = 0).all():
+        logger.info("FileCopier - Starting file transfer %s for User %s", entry.file_id, entry.user_id)
+        entry.status = 1
+        db_session.commit()
+        fc = FileCopier(entry.job_id)
+        FileCopier.start.delay(fc)
 
 @celery.task
 def upload_user_dropbox_jobs(user_id):
-    for entry in Job.query\
-        .filter_by(status = 0)\
-        .filter_by(user_id = user_id)\
-        .all():
-        try:
-            logger.info("FileCopier - Starting file transfer %s for User %s", entry.file_id, entry.user_id)
-            fc = FileCopier(entry.job_id)
-            FileCopier.start.delay(fc)
-        except Exception, e:
-            logger.critical(e)
-            logger.critical(traceback.format_exc())
+    for entry in Job.query.filter_by(status = 0).filter_by(user_id = user_id).all():
+        logger.info("FileCopier - Starting file transfer %s for User %s", entry.file_id, entry.user_id)
+        entry.status = 1
+        db_session.commit()
+        fc = FileCopier(entry.job_id)
+        FileCopier.start.delay(fc)
 
