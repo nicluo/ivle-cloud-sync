@@ -205,10 +205,6 @@ class FileCopier():
                         return
                     except rest.ErrorResponse as e:
                         logger.info("Copy - copy ref failed.")
-                        self.remove_copy_ref_db(entry)
-                        logger.debug("Copy - Invalid entry removed.")
-                else:
-                    self.remove_copy_ref_db(entry)
             self.upload_file()
             self.job.status = 2
             db_session.commit()
@@ -268,17 +264,26 @@ class FileCopier():
 
     def check_copy_ref_validity(self, copy_ref_entry):
         try:
-            meta = self.cli.metadata(copy_ref_entry.source_file_path)
+            meta = SessionHandler(copy_ref_entry.source_user_id).client.metadata(copy_ref_entry.source_file_path)
             if meta["revision"] == copy_ref_entry.source_file_revision:
                 logger.debug("Copy - copy-ref is valid!")
                 return True
             else:
                 logger.debug("Copy - copy-ref is not valid!")
+                self.remove_copy_ref_db(copy_ref_entry)
                 return False
         except rest.ErrorResponse as e:
             logger.debug(e)
             logger.warning("Copy - copy-ref error response...")
             return False
+        except Exception, e:
+            if len(e.args) > 0 and e.args[0] == "DROPBOX_USR_ERR":
+                logger.warning("Dropbox Auth not found.")
+                return False
+            else:
+                logger.warning("Copy - copy-ref validation error")
+                logger.warning(e)
+                return False
 
     def put_into_copy_ref_store(self, meta):
         c_ref = self.cli.create_copy_ref(meta["path"])
