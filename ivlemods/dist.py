@@ -185,6 +185,7 @@ class FileCopier():
     def start(self):
         try:
             self.job = Job.query.filter_by(job_id = self.job_id).first()
+            logger.info("FileCopier - Starting file transfer %s for User %s", self.job.file_id, self.job.user_id)
 
             #check that it hasn't been paused in the meantime
             if self.job.status == 6:
@@ -301,8 +302,8 @@ class FileCopier():
 
 @celery.task
 def upload_dropbox_jobs():
+    logger.info("Queueing file transfers for all users")
     for entry in Job.query.filter_by(status = 0).all():
-        logger.info("FileCopier - Starting file transfer %s for User %s", entry.file_id, entry.user_id)
         entry.status = 1
         db_session.commit()
         fc = FileCopier(entry.job_id)
@@ -310,8 +311,8 @@ def upload_dropbox_jobs():
 
 @celery.task
 def upload_user_dropbox_jobs(user_id):
+    logger.info("Queueing file transfers for user %s", user_id)
     for entry in Job.query.filter_by(status = 0).filter_by(user_id = user_id).all():
-        logger.info("FileCopier - Starting file transfer %s for User %s", entry.file_id, entry.user_id)
         entry.status = 1
         db_session.commit()
         fc = FileCopier(entry.job_id)
