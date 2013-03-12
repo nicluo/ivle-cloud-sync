@@ -1,0 +1,25 @@
+Cloudsync is a service for organising your workbin.
+
+Connect now
+Setup takes less than a minute.
+
+All your ivle workbins in one place
+Cloudsync places your workbin files and folders in the dropbox cloud. Access your files anywhere and everywhere.
+
+Never lose your files
+With ivle mirrored into your dropbox, you can always keep your documents even after submission folders, workbins, are closed. 
+
+Protect your data
+Our smart overwriting system ensures that we will not change files which you have written into. Yet, if an updated file becomes available on ivle, it will update to the newest version, so you won't miss anything.
+
+Free for life, easy to use
+We will not, and are not planning to, charge for the use of Cloudsync. This app is supported by NUS IVLE. Enjoy!
+
+Join our mailing list
+<email>
+
+Let us know how you feel.
+We are gathering feedback for the app, fill in the form below to get to us!
+<name optional>
+<email optional>
+<text-field>
