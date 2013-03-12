@@ -1,0 +1,21 @@
+General
+
+What is Cloudsync?
+
+What happens after the initial setup?
+
+Are there any notifications for new uploads?
+
+
+
+
+
+Developement
+
+Why DropBox?
+
+Who are the developers behind cloudsync?
+
+I want to use Cloudsync in a different way. How do I request for features?
+
+Is cloudsync going to support Google Drive and/or SkyDrive?

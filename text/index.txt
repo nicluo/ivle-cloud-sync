@@ -1,4 +1,7 @@
-Cloudsync is a service for organising your workbin.
+CloudSync
+The IVLE organiser you've always wanted.
+
+Cloudsync is a service for organising your workbin, without you having to track each new file or folder.
 
 Connect now
 Setup takes less than a minute.
