@@ -243,13 +243,13 @@ class FileCopier():
                 if not meta["is_deleted"]:
                     raise Exception("Copy - file exists in remote folder (should be detected by FileProcessOverwirte)")
                 else:
-                    logger.debug("Copy - file doesnt exist in remote folder (deleted). go ahead upload")
+                    logger.info("Copy - file doesnt exist in remote folder (deleted). go ahead upload")
                     response = self.cli.add_copy_ref(copy_ref_entry, self.processed_path)
                     self.put_into_copy_ref_store(response)
                     self.log_file_copy(response)
         except rest.ErrorResponse as e:
             logger.debug(e)
-            logger.debug("Copy - file doesnt exist in remote folder. go ahead upload")
+            logger.info("Copy - file doesnt exist in remote folder. go ahead upload")
             response = self.cli.add_copy_ref(copy_ref_entry, self.processed_path)
             self.put_into_copy_ref_store(response)
             self.log_file_copy(response)
@@ -265,16 +265,17 @@ class FileCopier():
 
     def check_copy_ref_validity(self, copy_ref_entry):
         try:
+            logger.info("check copy ref - logging in as %s", copy_ref_entry.source_user_id)
             meta = SessionHandler(copy_ref_entry.source_user_id).client.metadata(copy_ref_entry.source_file_path)
             if meta["revision"] == copy_ref_entry.source_file_revision:
-                logger.debug("Copy - copy-ref is valid!")
+                logger.info("Copy - copy-ref is valid!")
                 return True
             else:
-                logger.debug("Copy - copy-ref is not valid!")
+                logger.info("Copy - copy-ref is not valid!")
                 self.remove_copy_ref_db(copy_ref_entry)
                 return False
         except rest.ErrorResponse as e:
-            logger.debug(e)
+            logger.warning(e)
             logger.warning("Copy - copy-ref error response...")
             return False
         except Exception, e:
