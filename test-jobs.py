@@ -195,3 +195,62 @@ if User.query.filter(User.user_id == 1).count():
     db_session.delete(test_folder)
     db_session.delete(test_job)
     db_session.commit()
+
+    if User.query.filter(User.user_id == 2).count():
+        print("using user 2")
+        test_job = Job(10, "http://www.nicluo.com/html/test_cloud_sync/test_file.jpg", "http", 1, '/test_course/test_folder/test_file.jpg')
+        test_folder = IVLEFolder({'user_id': 1, 'course_code': 'test_course', 'ivle_id': 1, 'ivle_workbin_id': 2, 'name': 'test_folder', 'path': '/test_course' })
+        test_file = IVLEFile({ 'user_id': 1, 'course_code': 'test_course', 'ivle_workbin_id': 2, 'ivle_file_id': 10, 'ivle_folder_id': 1, 'file_path': '/test_course/test_folder', 'file_name': 'test_file.jpg', 'upload_time': datetime.now(), 'file_type': 'jpg' })
+
+        test_job2 = Job(10, "http://www.nicluo.com/html/test_cloud_sync/test_file.jpg", "http", 2, '/test_course/test_folder/test_file.jpg')
+        test_folder2 = IVLEFolder({'user_id': 2, 'course_code': 'test_course', 'ivle_id': 1, 'ivle_workbin_id': 2, 'name': 'test_folder', 'path': '/test_course' })
+        test_file2 = IVLEFile({ 'user_id': 2, 'course_code': 'test_course', 'ivle_workbin_id': 2, 'ivle_file_id': 10, 'ivle_folder_id': 1, 'file_path': '/test_course/test_folder', 'file_name': 'test_file.jpg', 'upload_time': datetime.now(), 'file_type': 'jpg' })
+
+
+        # pause all pending jobs
+        jobs = Job.query.filter_by(user_id = 1).filter_by(status = 0).all()
+        for job in jobs:
+            job.status = 6
+
+        test_job.status = 0
+        test_job2.status = 0
+
+        db_session.add(test_folder)
+        db_session.add(test_file)
+        db_session.add(test_job)
+        db_session.add(test_folder2)
+        db_session.add(test_file2)
+        db_session.add(test_job2)
+        db_session.commit()
+
+        upload_user_dropbox_jobs.delay(1)
+        #should wait for task to complete
+        time.sleep(60)
+
+        upload_user_dropbox_jobs.delay(2)
+        #should wait for task to complete
+        time.sleep(60)
+
+
+        test_job2 = Job.query.filter_by(user_id = 2).filter_by(file_id = 10).first()
+        print("4 Test for copy ref upload")
+        if test_job2.status == 3:
+            print("SUCCESS")
+        else:
+            print("FAILURE")
+
+        print(test_job2.status)
+        print("Cleaning up test entries")
+        #resume all pending jobs
+        for job in jobs:
+            job.status = 0
+        db_session.delete(test_file)
+        db_session.delete(test_folder)
+        db_session.delete(test_job)
+
+        db_session.delete(test_file2)
+        db_session.delete(test_folder2)
+        #db_session.delete(test_job2)
+        db_session.commit()
+
+
