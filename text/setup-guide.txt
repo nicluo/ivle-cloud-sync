@@ -1,13 +1,6 @@
 Setup is easy and takes less than a minute to complete. This guide lets you know what you're in for, and what to prepare for setup.
 
-
-
-
-1 Dropbox folder
-Cloud Sync uses the dropbox folder at "/My Dropbox/Apps/IVLE Cloud Sync/" to keep your ivle files. After setup, your files will be uploaded here, and you do not need to create it yourself.
-
-
-2 Logging in
+1 Logging in
 Cloud Sync requires access to your IVLE and Dropbox accounts. We neither require nor store your ivle or dropbox passwords. However, we do need you to grant Cloud Sync permission through the NUS IVLE website and Dropbox website.
 
 <image>
@@ -20,17 +13,27 @@ Granting app permissions to Dropbox (you need to be logged in to Dropbox in your
 Currently, Cloud Sync does not support mapping one IVLE account to multiple dropbox accounts. If you have granted permission using two different accoutns, only the latest one will be used.
 
 
-3 Selecting folders to sync
+2 Selecting folders to sync
 <image>
 By default, Cloud Sync will sync all your folders. We do reserve the option to exclude certain folders or entire workbins to your liking (but why would you). Uncheck the folders you do not want, and Cloud Sync will not sync those folders.
 
+<NOTE/Warning>
+There is a time delay between fetching your workbins and folders from IVLE (our servers might be busy uploading files for other users).
+We are working hard on this and hope to solve it by future revisions. If you do not see any folders at this page, please check back in 10 minutes.
 
 
-Next Steps/Extra Information
+3 Customise your Dropbox folder
+Because of the way Dropbox apps such as Cloud Sync are linked to your Dropbox account, the default folder for Cloud Sync is at "/My Dropbox/Apps/IVLE Cloud Sync/" to keep your ivle files. After setup, your files will be uploaded here, and you do not need to create it yourself.
+You can if you want to, move and rename the Cloud Sync folder out of the Apps directory to whichever directory your fancy.
+<image>
+Renaming the folder to "IVLE"
+<image>
+Moving the folder to /My Dropbox/
 
+
+4 Next Steps/Extra Information
 Initial Setup
 On the first run, Cloud Sync will download all current workbin files into your dropbox. This might take an hour or two, depending on how much files are already on the workbins. Subsequent synchronisations are much faster, between 5 to 10 minutes of any new file upload on IVLE.
 
 Using the Cloud Sync folder
 Cloud Sync lets you edit the files that are in your dropbox. In the event of an updated file from IVLE (e.g. your professor uploads a new assignment template), Cloud Sync renames the new template to avoid conflicting with your edits. We still recommend keeping safe backups of any work you have done.
-
