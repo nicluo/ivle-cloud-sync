@@ -83,7 +83,7 @@ class FileProcessOverwrite():
         self.check_user_id = user_id
         self.client = dropbox_client
         self.check_revision = 0
-        self.check_path = "/" + check_path
+        self.check_path = check_path
         #self.check_path_original used for generating new renames
         self.check_path_original = self.check_path
         self.return_path = ""
@@ -167,8 +167,8 @@ class FileProcessOverwrite():
                       .filter(OnlineStore.source_user_id == self.check_user_id)\
                       .filter(OnlineStore.source_file_path == self.check_path)
         if result.count():
-            for r in result:
-                db_session.delete(result)
+            for r in result.all():
+                db_session.delete(r)
             db_session.commit()
             logger.debug("FileProcessOverwrite - file entry deleted")
 
