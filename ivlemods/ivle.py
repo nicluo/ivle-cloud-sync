@@ -1,4 +1,5 @@
 from requests import get
+from requests.exceptions import ConnectionError
 from urllib import urlencode
 
 from ivlemods import app
@@ -17,7 +18,12 @@ class IvleClient:
         return params
 
     def get(self, method, **params):
-        return get(LAPI_URL + method, params=self.build_params(params)).json()
+        for i in range(3):
+            try:
+                return get(LAPI_URL + method, params=self.build_params(params)).json()
+            except ConnectionError:
+                if i == 2:
+                    raise
 
     def build_download_url(self, id):
         params = {'ID': id, 'target': 'workbin'}
