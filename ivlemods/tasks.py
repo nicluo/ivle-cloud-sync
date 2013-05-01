@@ -29,11 +29,11 @@ def ivle_workbin_to_dropbox_job(user_id, duration=0):
 
             for file in files:
                 job_count = Job.query.filter(Job.user_id == user_id)\
-                                     .filter(Job.file_id == file.ivle_file_id)\
+                                     .filter(Job.file_id == file.ivle_id)\
                                      .count()
                 if job_count == 0:
-                    db_session.add(Job(file.ivle_file_id,\
-                                       client.build_download_url(file.ivle_file_id),\
+                    db_session.add(Job(file.ivle_id,\
+                                       client.build_download_url(file.ivle_id),\
                                        'http',\
                                        user.user_id,\
                                        '/'.join([file.file_path, file.file_name])))
@@ -44,19 +44,20 @@ def ivle_workbin_to_dropbox_job(user_id, duration=0):
 def halt_user_dropbox_jobs(user_id):
     logging.info("unsubscribing jobs for user %s", user_id)
     user = User.query.get(user_id)
-    folders = IVLEFolder.query.filter(IVLEFolder.user_id == user_id)\
+    sync_folders = IVLEFolder.query.filter(IVLEFolder.user_id == user_id)\
         .filter(IVLEFolder.sync == False)
     count = 0
-    for folder in folders:
+    for folder in sync_folders:
         files = IVLEFile.query.filter(IVLEFile.user_id == user_id)\
             .filter(IVLEFile.ivle_folder_id == folder.ivle_id)
         for file in files:
             jobs = Job.query.filter(Job.user_id == user_id)\
-            .filter(Job.file_id == file.ivle_file_id)
+            .filter(Job.file_id == file.ivle_id)
             for job in jobs:
                 job.status = 6
-                db_session.commit()
                 count+=1
+
+    db_session.commit()
     logging.info("%s jobs halted.", count)
 
 @celery.task
@@ -71,7 +72,7 @@ def resume_user_dropbox_jobs(user_id):
         .filter(IVLEFile.ivle_folder_id == folder.ivle_id)
         for file in files:
             jobs = Job.query.filter(Job.user_id == user_id)\
-            .filter(Job.file_id == file.ivle_file_id)\
+            .filter(Job.file_id == file.ivle_id)\
             .filter(Job.status == 6)
             for job in jobs:
                 job.status = 0

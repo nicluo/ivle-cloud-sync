@@ -147,7 +147,7 @@ def poll_news_feed(user_id):
                         db_session.commit()
 
                     #print heading
-                    exploreThreads(heading, user.user_id, heading_db_entry.id, -1, courseCode)
+                    exploreThreads(heading, user.user_id, heading_db_entry.id, None, courseCode)
                     #for thread in heading["Threads"]:
                     #    print thread.keys()
                     #    print thread["ID"]

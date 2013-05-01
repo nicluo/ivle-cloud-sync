@@ -295,7 +295,7 @@ class FileCopier():
 
     def log_file_copy(self, meta):
         #updates succesful uploads into ivle_file
-        file = IVLEFile.query.filter_by(user_id = self.job.user_id, ivle_file_id = self.job.file_id).first()
+        file = IVLEFile.query.filter_by(user_id = self.job.user_id, ivle_id = self.job.file_id).first()
         file.dropbox_uploaded_date = datetime.now()
         file.dropbox_revision = meta["revision"]
         db_session.commit()

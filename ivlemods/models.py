@@ -29,63 +29,6 @@ class User(Base):
         self.dropbox_secret = dropbox_secret
         self.workbin_checked = datetime.now()
 
-class Job(Base):
-    __tablename__ = 'dropbox_jobs'
-
-    job_id = Column(Integer, primary_key=True)
-    file_id = Column(String(36))
-    http_url = Column(String(1024))
-    method = Column(String(4))
-    user_id = Column(Integer)
-    target_path = Column(String(256))
-    status = Column(Integer)
-
-    def __init__(self, file_id, http_url, method, user_id, target_path):
-        self.file_id = file_id
-        self.http_url = http_url
-        self.method = method
-        self.user_id = user_id
-        self.target_path = target_path
-        self.status = 0
-
-class OnlineStore(Base):
-    __tablename__ = 'dropbox_copy_ref_store'
-
-    store_id = Column(Integer, primary_key=True)
-    file_id = Column(String(50))
-    dropbox_copy_ref = Column(String(100))
-    dropbox_copy_ref_expiry = Column(Date)
-    source_file_path = Column(String(200))
-    source_user_id = Column(Integer)
-    source_file_revision = Column(Integer)
-
-    def __init__(self, job, copy_ref, uploaded_file_metadata):
-        self.file_id = job.file_id
-        self.dropbox_copy_ref = copy_ref["copy_ref"]
-        self.dropbox_copy_ref_expiry = datetime.strptime(
-            copy_ref['expires'][:25], "%a, %d %b %Y %H:%M:%S")
-        self.source_file_path = uploaded_file_metadata["path"]
-        self.source_user_id = job.user_id
-        self.source_file_revision = uploaded_file_metadata["revision"]
-
-
-class IVLEModule(Base):
-    __tablename__ = 'ivle_module'
-
-    module_id = Column(Integer, primary_key=True)
-    user_id = Column(Integer)
-    course_code = Column(String(16))
-    course_id = Column(String(36))
-    checked = Column(DateTime)
-    is_deleted = Column(Boolean)
-
-    def __init__(self, module, user_id):
-        self.user_id = user_id
-        self.course_code = module["CourseCode"]
-        self.course_id = module["ID"]
-        self.checked = datetime.now()
-        self.is_deleted = False
-
 
 class IVLEFolder(Base):
     __tablename__ = 'ivle_folder'
@@ -103,7 +46,12 @@ class IVLEFolder(Base):
     checked = Column(DateTime)
     sync = Column(Boolean)
 
-    user = relationship(User, backref=backref('ivle_folders', lazy='dynamic'))
+    user = relationship("User", backref=backref('ivle_folders', lazy='dynamic'))
+    parent_folder = relationship("IVLEFolder", primaryjoin = "and_(IVLEFolder.ivle_parent_id == IVLEFolder.ivle_id, IVLEFolder.user_id == IVLEFolder.user_id)",
+                                 foreign_keys = [ivle_parent_id, user_id],
+                                 remote_side = [ivle_id, user_id],
+                                 backref=backref('folders', lazy='dynamic'))
+
 
     def __init__(self, meta):
         if 'ivle_parent_id' in meta.keys():
@@ -126,7 +74,7 @@ class IVLEFile(Base):
     file_id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.user_id'))
     ivle_workbin_id = Column(String(36))
-    ivle_file_id = Column(String(36))
+    ivle_id = Column(String(36), nullable=False)
     ivle_folder_id = Column(String(36))
     course_code = Column(String(32))
     file_path = Column(String(256))
@@ -139,13 +87,19 @@ class IVLEFile(Base):
     is_deleted = Column(Boolean)
     checked = Column(DateTime)
 
+    parent_folder = relationship("IVLEFolder", primaryjoin = "and_(IVLEFile.ivle_folder_id == IVLEFolder.ivle_id,"
+                                                             " IVLEFile.user_id == IVLEFolder.user_id)",
+                                 foreign_keys = [ivle_folder_id, user_id],
+                                 remote_side = [IVLEFolder.ivle_id, IVLEFolder.user_id],
+                                 backref=backref('files', lazy='dynamic'))
+
     user = relationship(User, backref=backref('ivle_files', lazy='dynamic'))
 
     def __init__(self, meta):
         self.user_id = meta['user_id']
         self.course_code = meta['course_code']
         self.ivle_workbin_id = meta['ivle_workbin_id']
-        self.ivle_file_id = meta['ivle_file_id']
+        self.ivle_id = meta['ivle_id']
         self.ivle_folder_id = meta['ivle_folder_id']
         self.file_path = meta['file_path']
         self.file_name = meta['file_name']
@@ -153,6 +107,76 @@ class IVLEFile(Base):
         self.is_deleted = False
         self.upload_time = meta['upload_time']
         self.file_type = meta['file_type']
+
+class Job(Base):
+    __tablename__ = 'dropbox_jobs'
+
+    job_id = Column(Integer, primary_key=True)
+    file_id = Column(String(36))
+    http_url = Column(String(1024))
+    method = Column(String(4))
+    user_id = Column(Integer, ForeignKey('users.user_id'))
+    target_path = Column(String(256))
+    date_added = Column(DateTime)
+    status_update = Column(DateTime)
+    status = Column(Integer)
+
+    ivle_file = relationship("IVLEFile",
+                             primaryjoin = "and_(Job.file_id == IVLEFile.ivle_id, Job.user_id == IVLEFile.user_id)",
+                             foreign_keys = [file_id, user_id],
+                             remote_side = [IVLEFile.ivle_id, IVLEFile.user_id],
+                             backref = backref('jobs', lazy='dynamic'))
+    user = relationship("User", backref=backref('jobs', lazy='dynamic'))
+
+    def __init__(self, file_id, http_url, method, user_id, target_path):
+        self.file_id = file_id
+        self.http_url = http_url
+        self.method = method
+        self.user_id = user_id
+        self.target_path = target_path
+        self.date_added = datetime.now()
+        self.status_update = datetime.now()
+        self.status = 0
+
+class OnlineStore(Base):
+    __tablename__ = 'dropbox_store'
+
+    store_id = Column(Integer, primary_key=True)
+    file_id = Column(String(50))
+    dropbox_copy_ref = Column(String(100))
+    dropbox_copy_ref_expiry = Column(Date)
+    source_file_path = Column(String(200))
+    source_user_id = Column(Integer, ForeignKey('users.user_id'))
+    source_file_revision = Column(Integer)
+
+    def __init__(self, job, copy_ref, uploaded_file_metadata):
+        self.file_id = job.file_id
+        self.dropbox_copy_ref = copy_ref["copy_ref"]
+        self.dropbox_copy_ref_expiry = datetime.strptime(
+            copy_ref['expires'][:25], "%a, %d %b %Y %H:%M:%S")
+        self.source_file_path = uploaded_file_metadata["path"]
+        self.source_user_id = job.user_id
+        self.source_file_revision = uploaded_file_metadata["revision"]
+
+
+class IVLEModule(Base):
+    __tablename__ = 'ivle_module'
+
+    module_id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.user_id'))
+    course_code = Column(String(16))
+    course_id = Column(String(36))
+    checked = Column(DateTime)
+    is_deleted = Column(Boolean)
+
+    user = relationship("User", backref=backref('ivle_modules', lazy='dynamic'))
+
+    def __init__(self, module, user_id):
+        self.user_id = user_id
+        self.course_code = module['CourseCode']
+        self.course_id = module['ID']
+        self.checked = datetime.now()
+        self.is_deleted = False
 
 
 class IVLEAnnouncement(Base):

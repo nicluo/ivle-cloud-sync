@@ -1,7 +1,8 @@
 from ivlemods.database import db_session
 from ivlemods.models import IVLEModule, User
 from ivlemods.ivle import IvleClient
-from datetime import datetime
+
+from datetime import datetime, timedelta
 
 
 #use case: get_ivle_modules(user_id, duration(in minutes))
@@ -9,30 +10,23 @@ from datetime import datetime
 #returns dictionary of current active mods (deleted mods are omitted)
 
 
-def get_ivle_modules(user_id, duration):
-    db_user_modules = IVLEModule.query.filter(IVLEModule.user_id == user_id)\
-                                      .filter(IVLEModule.is_deleted == False)\
-                                      .all()
-    poll = False
-    #check if stored values are expired
-    for mod in db_user_modules:
-        time_diff = datetime.now() - mod.checked
-        if time_diff.total_seconds() > duration*60:
-            poll = True
-    #poll if stored values are expired
-    if poll or len(db_user_modules) == 0:
+def get_ivle_modules(user_id, duration=0):
+    user = User.query.filter(User.user_id == user_id).one()
+    collection = user.ivle_modules.filter(IVLEModule.is_deleted == False)
+
+
+    if not collection.count() or \
+           collection.filter(IVLEModule.checked < datetime.now() - timedelta(minutes=duration)).count():
         poll_ivle_modules(user_id)
-        db_user_modules = IVLEModule.query.filter(IVLEModule.user_id == user_id)\
-                                          .filter(IVLEModule.is_deleted == False)\
-                                          .all()
-    #populate the array of modules
+
+    db_user_modules = collection.all()
+
     user_modules = []
     for mod in db_user_modules:
         user_modules.append({"module_id" : mod.module_id,
                              "course_code" : mod.course_code,
                              "course_id" : mod.course_id,
                              "is_deleted" : mod.is_deleted})
-    #debug print user_modules
     return user_modules
 
 
@@ -42,12 +36,11 @@ def poll_ivle_modules(user_id):
     client = IvleClient(user.ivle_token)
     modules = client.get('Modules', Duration=0, IncludeAllInfo='false')
 
-    #get local values
-    db_user_modules = IVLEModule.query.filter(IVLEModule.user_id == user_id)\
-                                      .filter(IVLEModule.is_deleted == False)\
-                                      .all()
+    #get current modules
+    db_user_modules = user.ivle_modules.filter_by(is_deleted = False)
+
     user_course_codes = []
-    for module in db_user_modules:
+    for module in db_user_modules.all():
         user_course_codes.append(module.course_code)
 
     #check all modules
@@ -56,22 +49,33 @@ def poll_ivle_modules(user_id):
         if result['isActive'] == 'Y':
             #add missing modules
             if courseCode not in user_course_codes:
-                db_session.add(IVLEModule(result, user.user_id))
-                db_session.commit()
+                #check if the module has been deleted before
+                deleted_module = user.ivle_modules.filter_by(course_code = courseCode,
+                                                             is_deleted = True,
+                                                             course_id = result['ID'])
+                if deleted_module.count():
+                    #restore deleted module, sounds great but this should never happen
+                    deleted_module.update({'is_deleted' : False, 'checked' : datetime.now()}, 
+					  synchronize_session=False)
+                else:
+                    #add new module
+                    db_session.add(IVLEModule(result, user.user_id))
+
             #update checked modules with current timestamp
             elif courseCode in user_course_codes:
-                ivle_module = IVLEModule.query.\
-                    filter(IVLEModule.user_id == user.user_id).\
-                    filter(IVLEModule.course_code == courseCode).one()
-                ivle_module.checked = datetime.now()
-                db_session.commit()
+                #might have to check this in the future, seems safe to ignore for now
+                if result['ID'] ==  '00000000-0000-0000-0000-000000000000':
+                    pass
+                db_user_modules.filter_by(course_code = courseCode)\
+                               .update({'checked' : datetime.now()},
+					synchronize_session = False)
                 user_course_codes.remove(courseCode)
 
     #delete all extra modules
-    #these modules were not removed
-    for course_code in user_course_codes:
-        ivle_module = IVLEModule.query.\
-                        filter(IVLEModule.user_id == user.user_id).\
-                        filter(IVLEModule.course_code == course_code).one()
-        ivle_module.is_deleted = True
-        db_session.commit()
+    #these modules were not removed from earlier parts
+    db_user_modules.filter(IVLEModule.course_code.in_(user_course_codes))\
+                   .update({'is_deleted' : True, 'checked' : datetime.now()},
+			   synchronize_session = False)
+
+    #finally, commit the changes
+    db_session.commit()
