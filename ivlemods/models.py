@@ -127,6 +127,11 @@ class Job(Base):
                              remote_side = [IVLEFile.ivle_id, IVLEFile.user_id],
                              backref = backref('jobs', lazy='dynamic'))
     user = relationship("User", backref=backref('jobs', lazy='dynamic'))
+    cache = relationship("Cache",
+                         primaryjoin = "Job.file_id == Cache.file_id",
+                         foreign_keys = [file_id],
+                         remote_side = [file_id],
+                         backref = backref('jobs', lazy='dynamic'))
 
     def __init__(self, file_id, http_url, method, user_id, target_path):
         self.file_id = file_id
@@ -134,6 +139,34 @@ class Job(Base):
         self.method = method
         self.user_id = user_id
         self.target_path = target_path
+        self.date_added = datetime.now()
+        self.status_update = datetime.now()
+        self.status = 0
+
+class Cache(Base):
+    __tablename__ = 'file_cache'
+
+    cache_id = Column(Integer, primary_key=True)
+    file_id = Column(String(36))
+    http_url = Column(String(1024))
+    method = Column(String(4))
+    download_user_id = Column(Integer, ForeignKey('users.user_id'))
+    date_added = Column(DateTime)
+    path = Column(String(1024))
+    status = Column(Integer, default=0)
+    status_update = Column(DateTime)
+    status_started = Column(DateTime)
+    status_completed = Column(DateTime)
+    status_fail = Column(Integer, default=0)
+    status_retries = Column(Integer, default=0)
+
+    user = relationship("User")
+
+    def __init__(self, meta):
+        self.file_id = meta['file_id']
+        self.http_url = meta['http_url']
+        self.method = meta['method']
+        self.download_user_id = meta['download_user_id']
         self.date_added = datetime.now()
         self.status_update = datetime.now()
         self.status = 0
