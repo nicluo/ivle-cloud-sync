@@ -18,27 +18,18 @@ def ivle_workbin_to_dropbox_job(user_id, duration=0):
         user.workbin_checked = datetime.now()
         db_session.commit()
 
-        folders = IVLEFolder.query.filter(IVLEFolder.user_id == user_id)\
-                                  .filter(IVLEFolder.sync == True)
-
         client = IvleClient(user.ivle_token)
+        new_files = user.ivle_files.filter(IVLEFile.parent_folder.has(sync = True))\
+                                   .filter(~IVLEFile.jobs.any()).all()
 
-        for folder in folders:
-            files = IVLEFile.query.filter(IVLEFile.user_id == user_id)\
-                                  .filter(IVLEFile.ivle_folder_id == folder.ivle_id)
-
-            for file in files:
-                job_count = Job.query.filter(Job.user_id == user_id)\
-                                     .filter(Job.file_id == file.ivle_id)\
-                                     .count()
-                if job_count == 0:
-                    db_session.add(Job(file.ivle_id,\
-                                       client.build_download_url(file.ivle_id),\
-                                       'http',\
-                                       user.user_id,\
-                                       '/'.join([file.file_path, file.file_name])))
-                    file.dropbox_queued = datetime.now()
-                    db_session.commit()
+        for file in new_files:
+            db_session.add(Job(file.ivle_id,\
+                           client.build_download_url(file.ivle_id),\
+                           'http',\
+                           user.user_id,\
+                           '/'.join([file.file_path, file.file_name])))
+            file.dropbox_queued = datetime.now()
+        db_session.commit()
 
 @celery.task
 def halt_user_dropbox_jobs(user_id):
