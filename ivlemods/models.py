@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy import Column, Date, DateTime, Integer, String, Boolean, Text
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.schema import ForeignKey
+from sqlalchemy.sql.expression import text
 
 from ivlemods.database import Base
 
@@ -117,9 +118,15 @@ class Job(Base):
     method = Column(String(4))
     user_id = Column(Integer, ForeignKey('users.user_id'))
     target_path = Column(String(256))
-    date_added = Column(DateTime)
-    status_update = Column(DateTime)
-    status = Column(Integer)
+    date_added = Column(DateTime, default=datetime.now)
+    status_update = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+    status_started = Column(DateTime)
+    status_completed = Column(DateTime)
+    status = Column(Integer, server_default=text('0'))
+    status_retries = Column(Integer, server_default = text('0'))
+    status_upload = Column(Integer, server_default=text('0'))
+    status_copy_ref = Column(Integer, server_default=text('0'))
+    status_paused = Column(Integer, server_default=text('0'))
 
     ivle_file = relationship("IVLEFile",
                              primaryjoin = "and_(Job.file_id == IVLEFile.ivle_id, Job.user_id == IVLEFile.user_id)",
@@ -139,9 +146,6 @@ class Job(Base):
         self.method = method
         self.user_id = user_id
         self.target_path = target_path
-        self.date_added = datetime.now()
-        self.status_update = datetime.now()
-        self.status = 0
 
 class Cache(Base):
     __tablename__ = 'file_cache'
@@ -151,14 +155,14 @@ class Cache(Base):
     http_url = Column(String(1024))
     method = Column(String(4))
     download_user_id = Column(Integer, ForeignKey('users.user_id'))
-    date_added = Column(DateTime)
+    date_added = Column(DateTime, default = datetime.now)
     path = Column(String(1024))
-    status = Column(Integer, default=0)
-    status_update = Column(DateTime)
+    status = Column(Integer, server_default=text('0'))
+    status_update = Column(DateTime, default = datetime.now, onupdate = datetime.now)
     status_started = Column(DateTime)
     status_completed = Column(DateTime)
-    status_fail = Column(Integer, default=0)
-    status_retries = Column(Integer, default=0)
+    status_fail = Column(Integer, server_default=text('0'))
+    status_retries = Column(Integer, server_default=text('0'))
 
     user = relationship("User")
 
@@ -167,9 +171,6 @@ class Cache(Base):
         self.http_url = meta['http_url']
         self.method = meta['method']
         self.download_user_id = meta['download_user_id']
-        self.date_added = datetime.now()
-        self.status_update = datetime.now()
-        self.status = 0
 
 class OnlineStore(Base):
     __tablename__ = 'dropbox_store'
@@ -181,6 +182,8 @@ class OnlineStore(Base):
     source_file_path = Column(String(200))
     source_user_id = Column(Integer, ForeignKey('users.user_id'))
     source_file_revision = Column(Integer)
+    is_valid = Column(Boolean, server_default =text('0'), default=True)
+    date_added = Column(DateTime, default = datetime.now)
 
     def __init__(self, job, copy_ref, uploaded_file_metadata):
         self.file_id = job.file_id
@@ -199,8 +202,8 @@ class IVLEModule(Base):
     user_id = Column(Integer, ForeignKey('users.user_id'))
     course_code = Column(String(16))
     course_id = Column(String(36))
-    checked = Column(DateTime)
-    is_deleted = Column(Boolean)
+    checked = Column(DateTime, default=datetime.now)
+    is_deleted = Column(Boolean, server_default=text('0'), default=False)
 
     user = relationship("User", backref=backref('ivle_modules', lazy='dynamic'))
 
@@ -208,8 +211,6 @@ class IVLEModule(Base):
         self.user_id = user_id
         self.course_code = module['CourseCode']
         self.course_id = module['ID']
-        self.checked = datetime.now()
-        self.is_deleted = False
 
 
 class IVLEAnnouncement(Base):
@@ -225,8 +226,8 @@ class IVLEAnnouncement(Base):
     announcement_body = Column(Text)
     modified_timestamp = Column(DateTime)
     is_read = Column(Boolean)
-    is_deleted = Column(Boolean)
-    checked = Column(DateTime)
+    is_deleted = Column(Boolean, server_default=text('0'), default=False)
+    checked = Column(DateTime, default=datetime.now)
 
     def __init__(self, announcement, course_code, user_id):
         self.user_id = user_id
@@ -237,9 +238,6 @@ class IVLEAnnouncement(Base):
         self.announcement_title =  announcement["Title"]
         self.announcement_body = announcement["Description"]
         self.is_read = announcement["isRead"]
-        self.modified_timestamp = datetime.now()
-        self.is_deleted = False
-        self.checked = datetime.now()
 
 class IVLEForumHeading(Base):
     __tablename__ = 'ivle_forum_heading'
@@ -252,8 +250,8 @@ class IVLEForumHeading(Base):
     forum_title = Column(String(200))
     heading_title = Column(String(200))
     modified_timestamp = Column(DateTime)
-    is_deleted = Column(Boolean)
-    checked = Column(DateTime)
+    is_deleted = Column(Boolean, server_default=text('0'), default=False)
+    checked = Column(DateTime, default=datetime.now)
 
     def __init__(self, forum, heading, course_code, user_id):
         self.user_id = user_id
@@ -263,8 +261,6 @@ class IVLEForumHeading(Base):
         self.forum_title = forum['Title']
         self.heading_title = heading['Title']
         self.modified_timestamp = datetime.now()
-        self.checked = datetime.now()
-        self.is_deleted = False
 
 
 class IVLEForumThread(Base):
@@ -281,8 +277,8 @@ class IVLEForumThread(Base):
     parent_heading_id = Column(Integer)
     parent_thread_id = Column(Integer)
     modified_timestamp = Column(DateTime)
-    is_deleted = Column(Boolean)
-    checked = Column(DateTime)
+    is_deleted = Column(Boolean, server_default=text('0'), default=False)
+    checked = Column(DateTime, default=datetime.now)
 
     def __init__(self, thread, user_id, parent_heading_id, parent_thread_id, course_code):
         self.created_date = datetime.fromtimestamp(int(thread["PostDate"][6:16]))
@@ -295,5 +291,3 @@ class IVLEForumThread(Base):
         self.parent_thread_id = parent_thread_id
         self.parent_heading_id = parent_heading_id
         self.modified_timestamp = datetime.now()
-        self.checked = datetime.now()
-        self.is_deleted = False

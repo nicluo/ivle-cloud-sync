@@ -35,10 +35,17 @@ class FileFetch():
             self.download_from_http()
 
     def check_cache(self):
-        pass
+        if self.job.cache == None:
+            pass
+            #send download task and terminate
 
     def add_to_cache(self):
-        pass
+        new_cache = Cache({'file:id':self.job.file_id,
+                           'http_url':self.job.http_url,
+                           'mehod':self.job.method,
+                           'download_user_id':self.job.user_id})
+        db_session.add(new_cache)
+        db_session.commit()
 
     def download_from_http(self):
         r = requests.get(self.job.http_url)
@@ -173,7 +180,8 @@ class FileProcessOverwrite():
             logger.debug("FileProcessOverwrite - file entry deleted")
 
     def get_target_file_path(self):
-        return self.return_path[1:]
+        #remove preceding '/' in paths.
+        return self.return_path[ self.return_path[0] == '/' :]
 
 
 
@@ -185,12 +193,18 @@ class FileCopier():
     def start(self):
         try:
             self.job = Job.query.filter_by(job_id = self.job_id).first()
-            logger.info("FileCopier - Starting file transfer %s for User %s", self.job.file_id, self.job.user_id)
 
             #check that it hasn't been paused in the meantime
             if self.job.status == 6:
                 logger.info("job has been paused.")
                 return
+
+            if self.job.status_started == None:
+                self.job.status_started = datetime.now()
+            else:
+                self.job.retries = self.job.retries + 1
+            logger.info("FileCopier - Starting file transfer %s for User %s", self.job.file_id, self.job.user_id)
+
 
 
             self.SH = SessionHandler(self.job.user_id)
@@ -201,13 +215,17 @@ class FileCopier():
                     try:
                         self.upload_copy_ref(entry.dropbox_copy_ref)
                         logger.info("Copy - copy ref successful")
+                        self.job.status_copy_ref = 1
                         self.job.status = 3
+                        self.job.status_completed = datetime.now()
                         db_session.commit()
                         return
                     except rest.ErrorResponse as e:
                         logger.info("Copy - copy ref failed.")
             self.upload_file()
             self.job.status = 2
+            self.job.status_upload = 1
+            self.job.status_completed = datetime.now()
             db_session.commit()
 
         #catch exceptions, paused jobs, logging,
