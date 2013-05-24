@@ -5,14 +5,25 @@
   <h1>IVLE Cloud Sync</h1>
 </div>
 
-<div class="center" data-role="content">
-  <h1>IVLE Cloud Sync</h1>
-  <p>Sync your IVLE Workbin files with Dropbox automatically.</p>
+<div data-role="content">
+  <h1 class="left">All your files at the right place, all the time.</h1>
+  <p class="left">IVLE Cloud Sync <strong>simplifies workbin management</strong> by pushing new files to your Dropbox and giving you automatic updates as they happen.</p>
+  <hr class="clear">
   <p>
+    Jump right into the action.<br>
     <a data-ajax="false" data-inline="true" data-role="button"
-       href="{{ url_for('ivle_login') }}">
+       href="{{ url_for('ivle_login') }}"
+       data-theme="b">
       Login with IVLE
     </a>
   </p>
+  <p>
+  See what Cloudsync has to offer.<br>
+    <a data-ajax="false" data-inline="true" data-role="button"
+       href="{{ url_for('quickstart') }}">
+      Take the Tour
+    </a>
+  </p>
 </div>
+
 {% endblock %}

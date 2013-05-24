@@ -10,6 +10,9 @@ from ivlemods.database import db_session
 from ivlemods.poll_ivle_folders import poll_ivle_folders
 from ivlemods.models import IVLEFolder, User
 
+import analytics
+analytics.init('***REMOVED***', flush_at=1)
+
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -28,6 +31,7 @@ def shutdown_session(exception=None):
 
 @app.route('/')
 def index():
+    analytics.track('anonymous_user', 'load index');
     return render_template('index.html')
 
 
@@ -59,6 +63,16 @@ def ivle_callback():
         session['user_id'] = user.user_id
         return redirect(url_for('associate'))
 
+
+@app.route('/nextsteps')
+def nextsteps():
+    analytics.track('anonymous_user', 'load next steps');
+    return render_template('nextsteps.html')
+
+@app.route('/quickstart')
+def quickstart():
+    analytics.track('anonymous_user', 'load quickstart');
+    return render_template('quickstart.html')
 
 @app.route('/associate')
 @login_required

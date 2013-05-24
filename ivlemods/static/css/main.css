@@ -7,6 +7,20 @@
   margin-right: auto;
 }
 
+.left {
+  margin-left:0;
+  text-align:left;
+}
+
+.right {
+  float: right;
+  margin-right:0;
+}
+
+.clear {
+  clear: both;
+}
+
 .ui-checkbox .ui-btn-text:before {
   content: "\f115";
   font-family: FontAwesome;
@@ -23,4 +37,13 @@
 
 .ui-btn[data-nest="3"] .ui-btn-text {
   margin-left: 48px;
+}
+
+.img-standard {
+  max-width: 600px;
+}
+
+.ui-content{
+  max-width:700px;
+  overflow:auto;
 }

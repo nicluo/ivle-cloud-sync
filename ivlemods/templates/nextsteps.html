@@ -1,0 +1,47 @@
+{% extends "layout.html" %}
+{% block title %}IVLE Cloud Sync{% endblock %}
+{% block body %}
+<div data-role="header">
+  <h1>IVLE Cloud Sync</h1>
+</div>
+
+<div data-role="content">
+  <h1 class="left">Next Steps</h1>
+  <p class="left">How to move or rename your Cloud Sync app folder</p>
+  <hr> 
+  <h3 class="left"> Overview  </h3>
+  <p class="left">Cloud Sync uses a standard app folder (i.e. all files are in [Dropbox Folder]/Apps/IVLE Cloud Sync/). Deleting this folder on any system might cause the application to unlink, revoking Cloud Sync access, sort of like an "uninstall".</p>
+  <p class="left">To move or rename the IVLE Cloud Sync folder, you have to log in to the Dropbox website, and modify the folders there. We have also included a picture guide for the most technologically disinclined users to follow! 
+
+  <h4 class="left">1 Renaming the app folder</h4>
+  <ol class="left">
+    <li>Go to https://www.dropbox.com/home/Apps, the default location for the IVLE Cloud Sync folder.</li>
+    <li>Right click "IVLE Cloud Sync", then select "Rename".</li>
+    <li>Choose whichever name you fancy.</li>
+  </ol>
+  <br>
+  <img class="img-standard" src="{{url_for('static', filename='next-steps-img/dropbox-rename-folder.jpg' )}}" alt="rename the Cloud Sync app folder">
+
+  <h4 class="left">2 Moving the app folder</h4>
+  <ol class="left">
+    <li>Go to https://www.dropbox.com/home/Apps, the default location for the IVLE Cloud Sync folder.</li>
+    <li>Right click your IVLE Cloud Sync folder ("IVLE Cloud Sync" by default), then select "Move".</li>
+    <li>Choose whichever new location you prefer.</li>
+  </ol>
+  <p class="left">Note that in the example the new app folder is at [Dropbox Folder]/IVLE, convenient indeed!
+  </p>
+  <br>
+  <img class="img-standard" src="{{url_for('static', filename='next-steps-img/dropbox-move-folder.jpg' )}}" alt="move the Cloud Sync app folder">
+  <p class="left">
+    Remember, with great power comes great responsibility, but, if you do encounter any issues, we'll be glad to help. You may reach us here (insert link to us here).
+  </p>
+  <p>
+    <a data-ajax="false" data-inline="true" data-role="button"
+       href="{{ url_for('ivle_login') }}"
+       data-theme="b">
+      Login with IVLE
+    </a>
+  </p>
+</div>
+
+{% endblock %}

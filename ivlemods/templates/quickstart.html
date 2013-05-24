@@ -1,0 +1,44 @@
+{% extends "layout.html" %}
+{% block title %}IVLE Cloud Sync{% endblock %}
+{% block body %}
+<div data-role="header">
+  <h1>IVLE Cloud Sync</h1>
+</div>
+
+<div data-role="content">
+  <h1 class="left"> Quick Start </h1>
+  <p class="left">Setup is easy and takes less than a minute to complete</p>
+  <hr class="clear">
+  <h4 class="left"> 1 Logging in  </h4>
+  <p class="left">Cloud Sync requires authorization from your IVLE and Dropbox accounts. We do not store your ivle or dropbox passwords, only the application tokens provided to us by IVLE and Dropbox.</p>
+  <img class="img-standard" src="{{url_for('static', filename='tour-img/ivle-login.jpg' )}}" alt="login to IVLE">
+  <img class="img-standard" src="{{url_for('static', filename='tour-img/dropbox-login.jpg' )}}" alt="login to Dropbox">
+  
+  <h4 class="left"> 2 Selecting folders to sync </h4>
+  <p class="left">
+    By default, Cloud Sync will sync all your folders. We provide the option to exclude certain folders or entire workbins to your liking (but why would anyone do that). 
+  </p>
+  <p class="left"> 
+    Uncheck the folders you do not want synchronised (remember to submit), and Cloud Sync would handle the rest.
+  </p>
+  <img class="img-standard" src="{{url_for('static', filename='tour-img/folder-sync.jpg' )}}" alt="login to Dropbox">
+
+
+
+
+  <p class="left"> 
+    And you're done!
+  </p>
+  <p class="left"> 
+  Check out <a href="{{ url_for('nextsteps') }}">Next Steps: Customising your App Folder</a> to move or rename your IVLE folder on Dropbox.
+  </p>
+  <p>
+    <a data-ajax="false" data-inline="true" data-role="button"
+       href="{{ url_for('ivle_login') }}"
+       data-theme="b">
+      Login with IVLE
+    </a>
+  </p>
+</div>
+
+{% endblock %}
