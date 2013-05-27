@@ -35,19 +35,15 @@ def ivle_workbin_to_dropbox_job(user_id, duration=0):
 def halt_user_dropbox_jobs(user_id):
     logging.info("unsubscribing jobs for user %s", user_id)
     user = User.query.get(user_id)
-    sync_folders = IVLEFolder.query.filter(IVLEFolder.user_id == user_id)\
-        .filter(IVLEFolder.sync == False)
+    sync_files = user.ivle_files.filter(IVLEFile.parent_folder.has(sync = False))\
+                                    .filter(IVLEFile.jobs.any()).all()
     count = 0
-    for folder in sync_folders:
-        files = IVLEFile.query.filter(IVLEFile.user_id == user_id)\
-            .filter(IVLEFile.ivle_folder_id == folder.ivle_id)
-        for file in files:
-            jobs = Job.query.filter(Job.user_id == user_id)\
-            .filter(Job.file_id == file.ivle_id)
-            for job in jobs:
-                job.status = 6
-                count+=1
-
+    for file in sync_files:
+        jobs = file.jobs.filter(Job.status == 0)
+        for job in jobs:
+            job.status = 6
+            job.status_paused = 1
+            count+=1
     db_session.commit()
     logging.info("%s jobs halted.", count)
 
@@ -55,20 +51,16 @@ def halt_user_dropbox_jobs(user_id):
 def resume_user_dropbox_jobs(user_id):
     logging.info("resubscribing jobs for user %s", user_id)
     user = User.query.get(user_id)
-    folders = IVLEFolder.query.filter(IVLEFolder.user_id == user_id)\
-    .filter(IVLEFolder.sync == True)
+    sync_files = user.ivle_files.filter(IVLEFile.parent_folder.has(sync = True))\
+                                    .filter(IVLEFile.jobs.any()).all()
     count = 0
-    for folder in folders:
-        files = IVLEFile.query.filter(IVLEFile.user_id == user_id)\
-        .filter(IVLEFile.ivle_folder_id == folder.ivle_id)
-        for file in files:
-            jobs = Job.query.filter(Job.user_id == user_id)\
-            .filter(Job.file_id == file.ivle_id)\
-            .filter(Job.status == 6)
-            for job in jobs:
-                job.status = 0
-                db_session.commit()
-                count+=1
+    for file in sync_files:
+        jobs = file.jobs.filter(Job.status == 6)
+        for job in jobs:
+            job.status = 0
+            job.status_paused = 0
+            count+=1
+    db_session.commit()
     logging.info("%s jobs resumed.", count)
 
 @celery.task

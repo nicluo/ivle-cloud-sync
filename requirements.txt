@@ -17,3 +17,4 @@ requests==1.2.0
 wsgiref==0.1.2
 alembic==0.5.0
 analytics-python==0.4.1
+redis==2.7.5

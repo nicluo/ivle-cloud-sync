@@ -2,6 +2,7 @@ import os
 import logging
 import requests
 import traceback
+import redis
 
 from dropbox import client, rest, session
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
@@ -10,10 +11,10 @@ from datetime import datetime
 from ivlemods import app
 from ivlemods.celery import celery
 from ivlemods.database import db_session
-from ivlemods.models import User, Job, OnlineStore, IVLEFile
+from ivlemods.models import User, Job, OnlineStore, IVLEFile, Cache
 
 logger = logging.getLogger(__name__)
-
+r = redis.StrictRedis(host='localhost', port=6379, db=0)
 
 class SessionHandler():
     def __init__(self, user_id):
@@ -31,15 +32,33 @@ class SessionHandler():
 class FileFetch():
     def __init__(self, job):
         self.job = job
-        if self.job.method == 'http':
-            self.download_from_http()
+        if not self.job.cache == None:
+            return
+        else:
+            #check entry, check mutex and wait
+            while self.job.cache == None:
+                mutex_is_locked = r.getset(self.job.file_id, '1') == 'None'
+                if mutex_is_locked:
+                    sleep(2)
+                else:
+                    #mutex is yours
+                    try:
+                        if self.job.cache == None:
+                            #go ahead and download
+                            if self.job.method == 'http':
+                                self.download_from_http()
+                            #there is no entry
+                            #create cache entry
+                            self.create_cache_entry()
+                            #commit cache entry
+                    except:
+                        r.set(self.job.file_id, 'None')
+                        raise
+                    else:
+                        r.set(self.job.file_id, 'None')
+                        return
 
-    def check_cache(self):
-        if self.job.cache == None:
-            pass
-            #send download task and terminate
-
-    def add_to_cache(self):
+    def create_cache_entry(self):
         new_cache = Cache({'file:id':self.job.file_id,
                            'http_url':self.job.http_url,
                            'mehod':self.job.method,
@@ -181,7 +200,7 @@ class FileProcessOverwrite():
 
     def get_target_file_path(self):
         #remove preceding '/' in paths.
-        return self.return_path[ self.return_path[0] == '/' :]
+        return trim_path(self.return_path) 
 
 
 
@@ -202,7 +221,8 @@ class FileCopier():
             if self.job.status_started == None:
                 self.job.status_started = datetime.now()
             else:
-                self.job.retries = self.job.retries + 1
+                self.job.status_retries = self.job.status_retries + 1
+            db_session.commit()
             logger.info("FileCopier - Starting file transfer %s for User %s", self.job.file_id, self.job.user_id)
 
 
@@ -231,7 +251,7 @@ class FileCopier():
         #catch exceptions, paused jobs, logging,
         except Exception, e:
             if e.args[0] == "DROPBOX_USR_ERR":
-                logger.warning("Dropbox Auth not found.")
+                logger.warning("dropbox auth not found, pausing job.")
                 self.job.status = 6
                 db_session.commit()
                 return
@@ -307,6 +327,7 @@ class FileCopier():
 
     def put_into_copy_ref_store(self, meta):
         c_ref = self.cli.create_copy_ref(meta["path"])
+        meta["path"] = trim_path(meta["path"])
         new_store = OnlineStore(self.job, c_ref, meta)
         db_session.add(new_store)
         db_session.commit()
@@ -317,6 +338,11 @@ class FileCopier():
         file.dropbox_uploaded_date = datetime.now()
         file.dropbox_revision = meta["revision"]
         db_session.commit()
+
+def trim_path(path):
+     #remove first / in path
+     return path[path[0] == '/' :]
+
 
 
 @celery.task
