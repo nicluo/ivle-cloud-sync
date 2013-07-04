@@ -37,7 +37,7 @@ class FileFetch():
         else:
             #check entry, check mutex and wait
             while self.job.cache == None:
-                mutex_is_locked = r.getset(self.job.file_id, '1') == 'None'
+                mutex_is_locked = r.getset(self.job.file_id, '1') == '1'
                 if mutex_is_locked:
                     sleep(2)
                 else:
@@ -59,42 +59,39 @@ class FileFetch():
                         return
 
     def create_cache_entry(self):
-        new_cache = Cache({'file:id':self.job.file_id,
+        new_cache = Cache({'file_id':self.job.file_id,
                            'http_url':self.job.http_url,
-                           'mehod':self.job.method,
+                           'method':self.job.method,
                            'download_user_id':self.job.user_id})
         db_session.add(new_cache)
         db_session.commit()
 
     def download_from_http(self):
-        r = requests.get(self.job.http_url)
-        r.raise_for_status()
-        logger.debug(r.headers)
+        download = requests.get(self.job.http_url)
+        download.raise_for_status()
+        logger.debug(download.headers)
 
         #ensure proper, empty temp file for the cache to use
         cache_path = 'cache/tmp'
         self.ensure_directory(cache_path)
         cache_path = self.find_unused(cache_path)
-
         out = open(cache_path, 'wb')
-        out.write(r.content)
+        out.write(download.content)
         out.close()
-        logger.debug(self.job.target_path + " downloaded.")
-        try:
-            with open('cache/' + self.job.file_id) as f:
-                f.close()
-                os.remove('cache/' + self.job.file_id)
-                logger.debug("Cache - have to delete existing file.")
-        except IOError as e:
-            logger.debug("Cache - new file generated.")
-            #logger.critical(e)
-            pass
+        logger.debug(self.job.target_path + " downloaded to " + cache_path + ".")
+        self.delete_if_exists('cache/' + self.job.file_id)
         os.renames(cache_path, 'cache/' + self.job.file_id)
 
     def ensure_directory(self, f):
         d = os.path.dirname(f)
         if not os.path.exists(d):
             os.makedirs(d)
+
+    def delete_if_exists(self, path):
+        if os.path.exists(path):
+            os.remove(path)
+            logger.debug("Cache - have to delete existing file.")
+        return
 
     def find_unused(self, original_path):
         check_path = original_path
@@ -236,6 +233,7 @@ class FileCopier():
                         self.upload_copy_ref(entry.dropbox_copy_ref)
                         logger.info("Copy - copy ref successful")
                         self.job.status_copy_ref = 1
+                        #status 3 for copy ref uploads
                         self.job.status = 3
                         self.job.status_completed = datetime.now()
                         db_session.commit()
@@ -243,6 +241,7 @@ class FileCopier():
                     except rest.ErrorResponse as e:
                         logger.info("Copy - copy ref failed.")
             self.upload_file()
+            #status 2 for normal uploads
             self.job.status = 2
             self.job.status_upload = 1
             self.job.status_completed = datetime.now()
@@ -250,7 +249,7 @@ class FileCopier():
 
         #catch exceptions, paused jobs, logging,
         except Exception, e:
-            if e.args[0] == "DROPBOX_USR_ERR":
+            if isinstance(e, (list, tuple)) and e.args[0] == "DROPBOX_USR_ERR":
                 logger.warning("dropbox auth not found, pausing job.")
                 self.job.status = 6
                 db_session.commit()

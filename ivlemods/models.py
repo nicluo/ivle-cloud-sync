@@ -109,6 +109,31 @@ class IVLEFile(Base):
         self.upload_time = meta['upload_time']
         self.file_type = meta['file_type']
 
+class Cache(Base):
+    __tablename__ = 'file_cache'
+
+    cache_id = Column(Integer, primary_key=True)
+    file_id = Column(String(36))
+    http_url = Column(String(1024))
+    method = Column(String(4))
+    download_user_id = Column(Integer, ForeignKey('users.user_id'))
+    date_added = Column(DateTime, default = datetime.now)
+    path = Column(String(1024))
+    status = Column(Integer, server_default=text('0'))
+    status_update = Column(DateTime, default = datetime.now, onupdate = datetime.now)
+    status_started = Column(DateTime)
+    status_completed = Column(DateTime)
+    status_fail = Column(Integer, server_default=text('0'))
+    status_retries = Column(Integer, server_default=text('0'))
+
+    user = relationship("User")
+
+    def __init__(self, meta):
+        self.file_id = meta['file_id']
+        self.http_url = meta['http_url']
+        self.method = meta['method']
+        self.download_user_id = meta['download_user_id']
+
 class Job(Base):
     __tablename__ = 'dropbox_jobs'
 
@@ -137,7 +162,7 @@ class Job(Base):
     cache = relationship("Cache",
                          primaryjoin = "Job.file_id == Cache.file_id",
                          foreign_keys = [file_id],
-                         remote_side = [file_id],
+                         remote_side = [Cache.file_id],
                          backref = backref('jobs', lazy='dynamic'))
 
     def __init__(self, file_id, http_url, method, user_id, target_path):
@@ -147,30 +172,7 @@ class Job(Base):
         self.user_id = user_id
         self.target_path = target_path
 
-class Cache(Base):
-    __tablename__ = 'file_cache'
 
-    cache_id = Column(Integer, primary_key=True)
-    file_id = Column(String(36))
-    http_url = Column(String(1024))
-    method = Column(String(4))
-    download_user_id = Column(Integer, ForeignKey('users.user_id'))
-    date_added = Column(DateTime, default = datetime.now)
-    path = Column(String(1024))
-    status = Column(Integer, server_default=text('0'))
-    status_update = Column(DateTime, default = datetime.now, onupdate = datetime.now)
-    status_started = Column(DateTime)
-    status_completed = Column(DateTime)
-    status_fail = Column(Integer, server_default=text('0'))
-    status_retries = Column(Integer, server_default=text('0'))
-
-    user = relationship("User")
-
-    def __init__(self, meta):
-        self.file_id = meta['file_id']
-        self.http_url = meta['http_url']
-        self.method = meta['method']
-        self.download_user_id = meta['download_user_id']
 
 class OnlineStore(Base):
     __tablename__ = 'dropbox_store'

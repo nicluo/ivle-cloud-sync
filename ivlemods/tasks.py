@@ -6,6 +6,7 @@ from ivlemods.dist import upload_dropbox_jobs
 from ivlemods.database import db_session
 from ivlemods.models import User, Job, IVLEFile, IVLEFolder
 from ivlemods.poll_ivle_folders import poll_ivle_folders
+from ivlemods.poll_ivle_modules import poll_ivle_modules
 from ivlemods.ivle import IvleClient
 
 logger = logging.getLogger(__name__)
@@ -78,6 +79,12 @@ def poll_ivle_folders_for_all_users():
     ).delay()
 
 @celery.task
+def poll_ivle_modules_for_all_users():
+    poll_ivle_modules.map(
+        [id for id, in User.query.values(User.user_id)]
+    ).delay()
+
+@celery.task
 def one_task_to_rule_them_all():
-    (poll_ivle_folders_for_all_users.si() | ivle_workbin_to_dropbox_jobs.si(0) |
+    (poll_ivle_modules_for_all_users.si() | poll_ivle_folders_for_all_users.si() | ivle_workbin_to_dropbox_jobs.si(0) |
     upload_dropbox_jobs.si()).delay()

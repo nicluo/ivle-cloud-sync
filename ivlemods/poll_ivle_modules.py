@@ -1,3 +1,4 @@
+from ivlemods.celery import celery
 from ivlemods.database import db_session
 from ivlemods.models import IVLEModule, User
 from ivlemods.ivle import IvleClient
@@ -29,7 +30,7 @@ def get_ivle_modules(user_id, duration=0):
                              "is_deleted" : mod.is_deleted})
     return user_modules
 
-
+@celery.task
 def poll_ivle_modules(user_id):
     #get server values
     user = User.query.filter(User.user_id == user_id).one()

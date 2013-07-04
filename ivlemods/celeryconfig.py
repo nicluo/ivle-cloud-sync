@@ -2,7 +2,8 @@ from __future__ import absolute_import
 
 from celery.schedules import crontab
 
-BROKER_URL = 'amqp://'
+BROKER_URL = 'redis://localhost:6379/0'
+BROKER_TRANSPORT_OPTIONS = {'visibility_timeout':3600}
 CELERY_IMPORTS = ['ivlemods.tasks']
 CELERY_TIMEZONE = 'Singapore'
 CELERYBEAT_SCHEDULE = {
