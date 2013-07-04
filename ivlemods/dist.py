@@ -27,6 +27,19 @@ class SessionHandler():
             app.config['DROPBOX_APP_SECRET'], app.config['DROPBOX_ACCESS_TYPE'])
         sess.set_token(user.dropbox_key, user.dropbox_secret)
         self.client = client.DropboxClient(sess)
+    
+    def ignore_timeout(self, func):
+        def retry(*args, **kwargs):
+            complete = False
+            while not complete:
+                try:
+                    meta = func(*args, **kwargs)
+                    return meta
+                except rest.RESTSocketError as e:
+                    logger.debug('TIMEOUT DETECTED')
+                    #ignore timeouts
+                    pass
+        return retry
 
 
 class FileFetch():
@@ -102,11 +115,15 @@ class FileFetch():
         return check_path
 
 class FileProcessOverwrite():
-    def __init__(self, user_id, dropbox_client, check_path):
+    def __init__(self, user_id, check_path):
         self.check_user_id = user_id
-        self.client = dropbox_client
         self.check_revision = 0
         self.check_path = check_path
+
+        self.sh = SessionHandler(user_id)
+        self.cli = self.sh.client
+
+
         #self.check_path_original used for generating new renames
         self.check_path_original = self.check_path
         self.return_path = ""
@@ -138,7 +155,7 @@ class FileProcessOverwrite():
     def target_file_exists(self):
         #checks if file exists in the user dropbox directory
         try:
-            meta = self.client.metadata(self.check_path)
+            meta = self.sh.ignore_timeout(self.cli.metadata)(self.check_path)
             if unicode('is_deleted') in meta.keys():
                 if meta[unicode("is_deleted")]:
                     return False
@@ -146,10 +163,9 @@ class FileProcessOverwrite():
         except rest.ErrorResponse as e:
             return False
 
-
     def target_file_modified(self):
         #if the file is in online store, and copy ref validates - file was never modified by user.
-        meta = self.client.metadata(self.check_path)
+        meta = self.sh.ignore_timeout(self.client.metadata)(self.check_path)
         try:
             result = OnlineStore.query\
                       .filter(OnlineStore.source_user_id == self.check_user_id)\
@@ -184,7 +200,7 @@ class FileProcessOverwrite():
 
     def delete_target_file_path(self, path):
         logger.debug("FileProcessOverwrite - deleting file...")
-        meta = self.client.file_delete(path)
+        meta = self.cli.file_delete(path)
         logger.debug("FileProcessOverwrite - file deleted")
         result = OnlineStore.query\
                       .filter(OnlineStore.source_user_id == self.check_user_id)\
@@ -209,6 +225,9 @@ class FileCopier():
     def start(self):
         try:
             self.job = Job.query.filter_by(job_id = self.job_id).first()
+            if self.job == None:
+                logger.warning('job does not exist anymore. Have you cleared the database but not the message queue?')
+                return
 
             #check that it hasn't been paused in the meantime
             if self.job.status == 6:
@@ -224,9 +243,9 @@ class FileCopier():
 
 
 
-            self.SH = SessionHandler(self.job.user_id)
-            self.cli = self.SH.client
-            self.processed_path = FileProcessOverwrite(self.job.user_id, self.cli, self.job.target_path).get_target_file_path()
+            self.sh = SessionHandler(self.job.user_id)
+            self.cli = self.sh.client
+            self.processed_path = FileProcessOverwrite(self.job.user_id, self.job.target_path).get_target_file_path()
             for entry in self.fetch_copy_ref_db(self.job.file_id):
                 if self.check_copy_ref_validity(entry):
                     try:
@@ -275,18 +294,18 @@ class FileCopier():
 
     def upload_copy_ref(self, copy_ref_entry):
         try:
-            meta = self.cli.metadata(self.processed_path)
+            meta = self.sh.ignore_timeout(self.cli.metadata)(self.processed_path)
             if "is_deleted" in meta.keys():
                 if not meta["is_deleted"]:
                     raise Exception("Copy - file exists in remote folder (should be detected by FileProcessOverwirte)")
                 else:
-                    logger.info("Copy - file doesnt exist in remote folder (deleted). go ahead upload")
+                    logger.debug("Copy - file doesnt exist in remote folder (deleted). go ahead upload")
                     response = self.cli.add_copy_ref(copy_ref_entry, self.processed_path)
                     self.put_into_copy_ref_store(response)
                     self.log_file_copy(response)
         except rest.ErrorResponse as e:
             logger.debug(e)
-            logger.info("Copy - file doesnt exist in remote folder. go ahead upload")
+            logger.debug("Copy - file doesnt exist in remote folder. go ahead upload")
             response = self.cli.add_copy_ref(copy_ref_entry, self.processed_path)
             self.put_into_copy_ref_store(response)
             self.log_file_copy(response)
@@ -303,7 +322,8 @@ class FileCopier():
     def check_copy_ref_validity(self, copy_ref_entry):
         try:
             logger.info("check copy ref - logging in as %s", copy_ref_entry.source_user_id)
-            meta = SessionHandler(copy_ref_entry.source_user_id).client.metadata(copy_ref_entry.source_file_path)
+            source_sh = SessionHandler(copy_ref_entry.source_user_id)
+            meta = source_sh.ignore_timeout(source_sh.client.metadata)(copy_ref_entry.source_file_path)
             if meta["revision"] == copy_ref_entry.source_file_revision:
                 logger.info("Copy - copy-ref is valid!")
                 return True
@@ -325,7 +345,7 @@ class FileCopier():
                 return False
 
     def put_into_copy_ref_store(self, meta):
-        c_ref = self.cli.create_copy_ref(meta["path"])
+        c_ref = self.sh.ignore_timeout(self.cli.create_copy_ref)(meta["path"])
         meta["path"] = trim_path(meta["path"])
         new_store = OnlineStore(self.job, c_ref, meta)
         db_session.add(new_store)

@@ -1,3 +1,5 @@
+import logging
+
 from ivlemods.celery import celery
 from ivlemods.database import db_session
 from ivlemods.models import IVLEModule, User
@@ -5,6 +7,7 @@ from ivlemods.ivle import IvleClient
 
 from datetime import datetime, timedelta
 
+logger = logging.getLogger(__name__)
 
 #use case: get_ivle_modules(user_id, duration(in minutes))
 #e.g. get_ivle_modules(1, 5)
@@ -32,6 +35,7 @@ def get_ivle_modules(user_id, duration=0):
 
 @celery.task
 def poll_ivle_modules(user_id):
+    logger.info("POLL - IVLE modules for user %s.", user_id)
     #get server values
     user = User.query.filter(User.user_id == user_id).one()
     client = IvleClient(user.ivle_token)
