@@ -16,7 +16,7 @@ class User(Base):
     ivle_name = Column(String(64))
     ivle_token = Column(String(416))
     dropbox_uid = Column(Integer)
-    dropbox_key = Column(String(15))
+    dropbox_key = Column(String(16))
     dropbox_secret = Column(String(15))
     workbin_checked = Column(DateTime)
 
