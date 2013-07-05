@@ -8,7 +8,7 @@ CELERYD_NODES="w1 w2"
 CELERYD_CHDIR="/home/cloudsync/ivle-cloud-sync/"
 
 # Extra arguments to celeryd
-CELERYD_OPTS="-A ivlemods -Q:2 ivle"
+CELERYD_OPTS="-A ivlemods -Q:w2 ivle"
 
 # %n will be replaced with the nodename.
 CELERYD_LOG_FILE="/home/cloudsync/ivle-cloud-sync/%n.log"
