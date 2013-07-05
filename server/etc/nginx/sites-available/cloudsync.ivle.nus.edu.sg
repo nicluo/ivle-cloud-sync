@@ -1,0 +1,15 @@
+server {
+    listen 80;
+    server_name cloudsync.ivle.nus.edu.sg;
+    access_log /var/log/nginx/cloudsync.ivle.nus.edu.sg_access.log;
+    error_log /var/log/nginx/cloudsync.ivle.nus.edu.sg_error.log;
+
+    location / {
+        uwsgi_pass 127.0.0.1:3031;
+        include uwsgi_params;
+    }
+
+    location /static/ {
+        alias /home/cloudsync/ivle-cloud-sync/ivlemods/static/;
+    }
+}

@@ -1,0 +1,28 @@
+# Name of nodes to start
+# here we have a single node
+CELERYD_NODES="w1 w2"
+# or we could have three nodes:
+#CELERYD_NODES="w1 w2 w3"
+
+# Where to chdir at start.
+CELERYD_CHDIR="/home/cloudsync/ivle-cloud-sync/"
+
+# Extra arguments to celeryd
+CELERYD_OPTS="-A ivlemods -Q:2 ivle"
+
+# %n will be replaced with the nodename.
+CELERYD_LOG_FILE="/home/cloudsync/ivle-cloud-sync/%n.log"
+CELERYD_PID_FILE="/home/cloudsync/ivle-cloud-sync/%n.pid"
+
+# Workers should run as an unprivileged user.
+CELERYD_USER="cloudsync"
+CELERYD_GROUP="cloudsync"
+
+# Where to chdir at start.
+CELERYBEAT_CHDIR="/home/cloudsync/ivle-cloud-sync/"
+
+# Extra arguments to celerybeat
+CELERYBEAT_OPTS="-A ivlemods"
+
+CELERYBEAT_LOG_FILE="/home/cloudsync/ivle-cloud-sync/celerybeat.log"
+CELERYBEAT_PID_FILE="/home/cloudsync/ivle-cloud-sync/celerybeat.pid"
