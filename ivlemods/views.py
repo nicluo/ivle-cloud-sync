@@ -8,6 +8,7 @@ from ivlemods import tasks
 from ivlemods.ivle import IvleClient
 from ivlemods.database import db_session
 from ivlemods.poll_ivle_folders import poll_ivle_folders
+from ivlemods.poll_ivle_modules import poll_ivle_modules
 from ivlemods.models import IVLEFolder, User
 
 import analytics
@@ -59,7 +60,7 @@ def ivle_callback():
             ivle_name=ivle_name, ivle_token=ivle_token)
         db_session.add(user)
         db_session.commit()
-        poll_ivle_folders.delay(user.user_id)
+        (poll_ivle_modules.si(user.user_id) | poll_ivle_folders.si(user.user_id)).delay()
         session['user_id'] = user.user_id
         return redirect(url_for('associate'))
 
