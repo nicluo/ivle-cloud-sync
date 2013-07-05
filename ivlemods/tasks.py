@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 import logging
 
 from ivlemods.celery import celery
-from ivlemods.dist import upload_dropbox_jobs
+from ivlemods.dist import upload_dropbox_jobs, upload_user_dropbox_jobs
 from ivlemods.database import db_session
 from ivlemods.models import User, Job, IVLEFile, IVLEFolder
 from ivlemods.poll_ivle_folders import poll_ivle_folders
@@ -50,6 +50,7 @@ def halt_user_dropbox_jobs(user_id):
 
 @celery.task
 def resume_user_dropbox_jobs(user_id):
+    #resumes jobs that were due to folders not being synced
     logging.info("resubscribing jobs for user %s", user_id)
     user = User.query.get(user_id)
     sync_files = user.ivle_files.filter(IVLEFile.parent_folder.has(sync = True))\
@@ -63,6 +64,16 @@ def resume_user_dropbox_jobs(user_id):
             count+=1
     db_session.commit()
     logging.info("%s jobs resumed.", count)
+
+@celery.task
+def dropbox_login_resume_jobs(user_id):
+    #resumes jobs that were paused because of missing dropbox login
+    logger.info("Resuming file transfers for user %s because He/She had relogged in", user_id)
+    for entry in Job.query.filter_by(status = 10).filter_by(user_id = user_id).all():
+        entry.status = 0
+        db_session.commit()
+    upload_user_dropbox_jobs(user_id).delay()
+
 
 @celery.task
 def ivle_workbin_to_dropbox_jobs(duration=0):

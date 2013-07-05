@@ -84,7 +84,7 @@ class IVLEFile(Base):
     upload_time = Column(DateTime)
     dropbox_queued = Column(DateTime)
     dropbox_uploaded_date = Column(DateTime)
-    dropbox_revision = Column(Integer)
+    dropbox_rev= Column(String(11))
     is_deleted = Column(Boolean)
     checked = Column(DateTime)
 
@@ -182,8 +182,9 @@ class OnlineStore(Base):
     dropbox_copy_ref = Column(String(100))
     dropbox_copy_ref_expiry = Column(Date)
     source_file_path = Column(String(200))
+    source_uploaded_path = Column(String(200))
     source_user_id = Column(Integer, ForeignKey('users.user_id'))
-    source_file_revision = Column(Integer)
+    source_file_rev= Column(String(11))
     is_valid = Column(Boolean, server_default =text('0'), default=True)
     date_added = Column(DateTime, default = datetime.now)
 
@@ -192,9 +193,10 @@ class OnlineStore(Base):
         self.dropbox_copy_ref = copy_ref["copy_ref"]
         self.dropbox_copy_ref_expiry = datetime.strptime(
             copy_ref['expires'][:25], "%a, %d %b %Y %H:%M:%S")
-        self.source_file_path = uploaded_file_metadata["path"]
+        self.source_file_path = job.target_path 
+        self.source_uploaded_path = uploaded_file_metadata["path"]
         self.source_user_id = job.user_id
-        self.source_file_revision = uploaded_file_metadata["revision"]
+        self.source_file_rev= uploaded_file_metadata["rev"]
 
 
 class IVLEModule(Base):

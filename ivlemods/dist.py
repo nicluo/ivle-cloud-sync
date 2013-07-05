@@ -42,7 +42,7 @@ class SessionHandler():
         return retry
 
 
-class FileFetch():
+class CacheFetch():
     def __init__(self, job):
         self.job = job
         if not self.job.cache == None:
@@ -117,103 +117,61 @@ class FileFetch():
 class FileProcessOverwrite():
     def __init__(self, user_id, check_path):
         self.check_user_id = user_id
-        self.check_revision = 0
+        self.check_rev= 0
         self.check_path = check_path
 
         self.sh = SessionHandler(user_id)
         self.cli = self.sh.client
 
-
-        #self.check_path_original used for generating new renames
         self.check_path_original = self.check_path
         self.return_path = ""
+        self.return_rev = 0
+        self.return_method = 'auto'
 
-        self.conflict_num = 0
-        self.find_available_path()
-
-    def find_available_path(self):
-        logger.debug(self.check_path)
-        if not self.target_file_exists():
+        #should only have one, or none latest
+        latest = OnlineStore.query.filter(OnlineStore.source_file_path == self.check_path)\
+                                  .filter(OnlineStore.source_user_id == self.check_user_id)\
+                                  .filter(OnlineStore.is_valid == True).first()
+        rev = self.target_file_rev(self.check_path)
+        if latest:
+            alternate_rev = self.target_file_rev(latest.source_uploaded_path)
+        if rev:
+            self.return_method = 'upload'
+            if latest and latest.source_file_rev == alternate_rev:
+                logger.debug("FileProcessOverwrite - Overwrite, fallback to normal upload")
+                self.return_path = latest.source_uploaded_path
+                self.return_rev = latest.source_file_rev
+            elif latest:
+                logger.debug("FileProcessOverwrite - File modified, fallback to normal upload")
+                self.return_path = self.check_path
+            else:
+                logger.debug("FileProcessOverwrite - Mystery file for which we have no record of exists, let dropbox make new filename")
+                self.return_path = self.check_path
+        else:
             logger.debug("FileProcessOverwrite - target file doesnt exist, no need to overwrite")
             self.return_path = self.check_path
-        else:
-            logger.debug("FileProcessOverwrite - target file exists")
-            if self.target_file_modified():
-                logger.debug("FileProcessOverwrite - do not overwrite")
-                self.make_new_path()
-                self.find_available_path()
-            else:
-                logger.debug("FileProcessOverwrite - overwrite")
-                self.return_path = self.check_path
-                self.delete_target_file_path(self.check_path)
 
-    def make_new_path(self):
-        title, ext = os.path.splitext(self.check_path_original)
-        self.conflict_num += 1
-        self.check_path = title + str(self.conflict_num) + ext
-
-    def target_file_exists(self):
-        #checks if file exists in the user dropbox directory
+    def target_file_rev(self, path):
+        #check for existing file
+        #returns rev if file exists
         try:
-            meta = self.sh.ignore_timeout(self.cli.metadata)(self.check_path)
-            if unicode('is_deleted') in meta.keys():
-                if meta[unicode("is_deleted")]:
+            meta = self.sh.ignore_timeout(self.cli.metadata)(path)
+            if 'is_deleted' in meta.keys():
+                if meta['is_deleted']:
                     return False
-            return True
+            return meta['rev']
         except rest.ErrorResponse as e:
             return False
-
-    def target_file_modified(self):
-        #if the file is in online store, and copy ref validates - file was never modified by user.
-        meta = self.sh.ignore_timeout(self.client.metadata)(self.check_path)
-        try:
-            result = OnlineStore.query\
-                      .filter(OnlineStore.source_user_id == self.check_user_id)\
-                      .filter(OnlineStore.source_file_path == self.check_path)\
-                      .one()
-
-            self.check_revision = result.source_file_revision
-            if meta["revision"] == self.check_revision:
-                #the revision is consistent with the one we uploaded
-                #the user has not modified
-                logger.debug("FileProcessOverwrite - file not modified by user")
-                return False
-            else:
-                #revision is inconsistent
-                #user has modified
-                logger.debug("FileProcessOverwrite - file modified by user")
-                return True
-
-        except MultipleResultsFound as e:
-            #Shouldn't reach here
-            #TODO: delete entries
-            logger.critical("FileProcessOverwrite - duplicate file entry")
-            return True
-
-        except NoResultFound as e:
-            #file isn't in online store - either
-            #1 we didn't upload it
-            #2 it was already modified by the user
-            #result - do not upload
-            logger.warning("FileProcessOverwrite - no file entry found")
-            return True
-
-    def delete_target_file_path(self, path):
-        logger.debug("FileProcessOverwrite - deleting file...")
-        meta = self.cli.file_delete(path)
-        logger.debug("FileProcessOverwrite - file deleted")
-        result = OnlineStore.query\
-                      .filter(OnlineStore.source_user_id == self.check_user_id)\
-                      .filter(OnlineStore.source_file_path == self.check_path)
-        if result.count():
-            for r in result.all():
-                db_session.delete(r)
-            db_session.commit()
-            logger.debug("FileProcessOverwrite - file entry deleted")
 
     def get_target_file_path(self):
         #remove preceding '/' in paths.
         return trim_path(self.return_path) 
+
+    def get_target_method(self):
+        return self.return_method
+
+    def get_target_file_rev(self):
+        return self.return_rev
 
 
 
@@ -224,6 +182,7 @@ class FileCopier():
     @celery.task
     def start(self):
         try:
+            #check that job still freaking exists
             self.job = Job.query.filter_by(job_id = self.job_id).first()
             if self.job == None:
                 logger.warning('job does not exist anymore. Have you cleared the database but not the message queue?')
@@ -234,43 +193,46 @@ class FileCopier():
                 logger.info("job has been paused.")
                 return
 
+            #mark that we have started the job, and increment retries
+            logger.info("FileCopier - Starting file transfer %s for User %s", self.job.file_id, self.job.user_id)
             if self.job.status_started == None:
                 self.job.status_started = datetime.now()
             else:
                 self.job.status_retries = self.job.status_retries + 1
             db_session.commit()
-            logger.info("FileCopier - Starting file transfer %s for User %s", self.job.file_id, self.job.user_id)
 
+            #get the upload strategy, target path and target parent rev
+            fpo = FileProcessOverwrite(self.job.user_id, self.job.target_path)
+            self.method = fpo.get_target_method()
+            self.file_path = fpo.get_target_file_path()
+            self.file_rev = fpo.get_target_file_rev()
 
-
+            #provide dropbox client
             self.sh = SessionHandler(self.job.user_id)
             self.cli = self.sh.client
-            self.processed_path = FileProcessOverwrite(self.job.user_id, self.job.target_path).get_target_file_path()
-            for entry in self.fetch_copy_ref_db(self.job.file_id):
-                if self.check_copy_ref_validity(entry):
-                    try:
-                        self.upload_copy_ref(entry.dropbox_copy_ref)
-                        logger.info("Copy - copy ref successful")
-                        self.job.status_copy_ref = 1
-                        #status 3 for copy ref uploads
-                        self.job.status = 3
-                        self.job.status_completed = datetime.now()
-                        db_session.commit()
-                        return
-                    except rest.ErrorResponse as e:
-                        logger.info("Copy - copy ref failed.")
+
+            #try to upload copy ref
+            if self.method == 'auto':
+                if self.try_copy_ref():
+                    logger.info("Copy - copy ref successful")
+                    self.job.status_copy_ref = 1
+                    self.job.status = 3
+                    self.job.status_completed = datetime.now()
+                    db_session.commit()
+                    return;
+
+            #upload normal file
             self.upload_file()
-            #status 2 for normal uploads
-            self.job.status = 2
             self.job.status_upload = 1
+            self.job.status = 2
             self.job.status_completed = datetime.now()
             db_session.commit()
 
         #catch exceptions, paused jobs, logging,
         except Exception, e:
             if isinstance(e, (list, tuple)) and e.args[0] == "DROPBOX_USR_ERR":
-                logger.warning("dropbox auth not found, pausing job.")
-                self.job.status = 6
+                logger.warning("FileCopier - Dropbox auth not found, pausing job.")
+                self.job.status = 10
                 db_session.commit()
                 return
             else:
@@ -280,43 +242,59 @@ class FileCopier():
                 logger.critical(traceback.format_exc())
                 raise e
 
+    def try_copy_ref(self):
+        for entry in self.fetch_copy_ref_db(self.job.file_id):
+            if self.check_copy_ref_validity(entry):
+                try:
+                    self.upload_copy_ref(entry.dropbox_copy_ref)
+                    db_session.commit()
+                    return
+                except rest.ErrorResponse as e:
+                    logger.info("Copy - copy ref failed.")
+
 
     def upload_file(self):
-        logger.debug("Copy - Uploading Normally.")
-        FileFetch(self.job)
+        logger.debug("Copy - NORMAL UPLOAD")
+        CacheFetch(self.job)
         f = open("cache/" + self.job.file_id, 'rb')
-        response = self.cli.put_file(self.processed_path, f)
+        if self.file_rev:
+            response = self.cli.put_file(self.file_path, f, parent_rev = self.file_rev)
+        else:
+            response = self.cli.put_file(self.file_path, f)
         f.close()
-
-        self.put_into_copy_ref_store(response)
-        self.log_file_copy(response)
-
+        self.post_upload_actions(response)
 
     def upload_copy_ref(self, copy_ref_entry):
         try:
-            meta = self.sh.ignore_timeout(self.cli.metadata)(self.processed_path)
+            meta = self.sh.ignore_timeout(self.cli.metadata)(self.file_path)
             if "is_deleted" in meta.keys():
                 if not meta["is_deleted"]:
                     raise Exception("Copy - file exists in remote folder (should be detected by FileProcessOverwirte)")
                 else:
                     logger.debug("Copy - file doesnt exist in remote folder (deleted). go ahead upload")
-                    response = self.cli.add_copy_ref(copy_ref_entry, self.processed_path)
-                    self.put_into_copy_ref_store(response)
-                    self.log_file_copy(response)
+                    response = self.sh.ignore_timeout(self.cli.add_copy_ref)(copy_ref_entry, self.file_path)
+                    self.post_upload_actions(response)
         except rest.ErrorResponse as e:
             logger.debug(e)
             logger.debug("Copy - file doesnt exist in remote folder. go ahead upload")
-            response = self.cli.add_copy_ref(copy_ref_entry, self.processed_path)
-            self.put_into_copy_ref_store(response)
-            self.log_file_copy(response)
+            response = self.cli.add_copy_ref(copy_ref_entry, self.file_path)
+            self.post_upload_actions(response)
 
+    def post_upload_actions(self, metadata):
+        logger.debug(metadata)
+        metadata["path"] = trim_path(metadata["path"])
+        self.invalidate_latest_store_entry(metadata['path'])
+        self.put_into_copy_ref_store(metadata)
+        self.log_file_copy(metadata)
+        logger.info('%d COMPLETE', self.job.job_id)
 
     def fetch_copy_ref_db(self, file_id):
-        results = OnlineStore.query.filter(OnlineStore.file_id == file_id)
+        results = OnlineStore.query.filter(OnlineStore.file_id == file_id)\
+                                   .filter(OnlineStore.is_valid == True)
         return results
 
     def remove_copy_ref_db(self, store_obj):
-        db_session.delete(store_obj)
+        store_obj.is_valid = False
         db_session.commit()
 
     def check_copy_ref_validity(self, copy_ref_entry):
@@ -324,7 +302,7 @@ class FileCopier():
             logger.info("check copy ref - logging in as %s", copy_ref_entry.source_user_id)
             source_sh = SessionHandler(copy_ref_entry.source_user_id)
             meta = source_sh.ignore_timeout(source_sh.client.metadata)(copy_ref_entry.source_file_path)
-            if meta["revision"] == copy_ref_entry.source_file_revision:
+            if meta["rev"] == copy_ref_entry.source_file_rev:
                 logger.info("Copy - copy-ref is valid!")
                 return True
             else:
@@ -344,9 +322,17 @@ class FileCopier():
                 logger.warning(e)
                 return False
 
+    def invalidate_latest_store_entry(self, path):
+        #should only have one, or none for the particular upload path
+        latest = OnlineStore.query.filter(OnlineStore.source_file_path == self.job.target_path)\
+                                  .filter(OnlineStore.source_user_id == self.job.user_id)\
+                                  .filter(OnlineStore.is_valid == True).first()
+        if latest:
+            latest.is_valid = False
+            db_session.commit()
+
     def put_into_copy_ref_store(self, meta):
         c_ref = self.sh.ignore_timeout(self.cli.create_copy_ref)(meta["path"])
-        meta["path"] = trim_path(meta["path"])
         new_store = OnlineStore(self.job, c_ref, meta)
         db_session.add(new_store)
         db_session.commit()
@@ -355,13 +341,13 @@ class FileCopier():
         #updates succesful uploads into ivle_file
         file = IVLEFile.query.filter_by(user_id = self.job.user_id, ivle_id = self.job.file_id).first()
         file.dropbox_uploaded_date = datetime.now()
-        file.dropbox_revision = meta["revision"]
+        file.dropbox_rev= meta["rev"]
         db_session.commit()
+
 
 def trim_path(path):
      #remove first / in path
      return path[path[0] == '/' :]
-
 
 
 @celery.task
@@ -372,6 +358,7 @@ def upload_dropbox_jobs():
         db_session.commit()
         fc = FileCopier(entry.job_id)
         FileCopier.start.delay(fc)
+
 
 @celery.task
 def upload_user_dropbox_jobs(user_id):

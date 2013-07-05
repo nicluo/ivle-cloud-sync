@@ -150,6 +150,7 @@ def dropbox_callback():
     g.user.dropbox_key = access_token.key
     g.user.dropbox_secret = access_token.secret
     db_session.commit()
+    tasks.dropbox_login_resume_jobs.delay(g.user.user_id)
     session.pop('dropbox_request_token_key', None)
     session.pop('dropbox_request_token_secret', None)
     return redirect(url_for('settings'))
