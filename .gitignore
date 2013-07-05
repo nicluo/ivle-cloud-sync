@@ -1,4 +1,5 @@
 *.log
+*.pid
 *.pyc
 cache
 celerybeat-schedule
