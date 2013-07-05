@@ -72,7 +72,7 @@ def dropbox_login_resume_jobs(user_id):
     for entry in Job.query.filter_by(status = 10).filter_by(user_id = user_id).all():
         entry.status = 0
         db_session.commit()
-    upload_user_dropbox_jobs(user_id).delay()
+    upload_user_dropbox_jobs.delay(user_id)
 
 
 @celery.task
