@@ -75,27 +75,38 @@ def dropbox_login_resume_jobs(user_id):
     upload_user_dropbox_jobs.delay(user_id)
 
 
-@celery.task
-def ivle_workbin_to_dropbox_jobs(duration=0):
-    ivle_workbin_to_dropbox_job.starmap(
+def ivle_workbin_to_dropbox_jobs_subtask(duration=0):
+    return ivle_workbin_to_dropbox_job.starmap(
         [(id, duration) for id, in User.query.filter(
             User.workbin_checked < datetime.now() - timedelta(minutes=duration)
         ).values(User.user_id)]
-    ).delay()
+    )
+
+
+@celery.task
+def ivle_workbin_to_dropbox_jobs(duration=0):
+    ivle_workbin_to_dropbox_jobs_subtask(duration).delay()
+
+
+def poll_ivle_folders_for_all_users_subtask():
+    return poll_ivle_folders.map([id for id, in User.query.values(User.user_id)])
+
 
 @celery.task
 def poll_ivle_folders_for_all_users():
-    poll_ivle_folders.map(
-        [id for id, in User.query.values(User.user_id)]
-    ).delay()
+    poll_ivle_folders_for_all_users_subtask().delay()
+
+
+def poll_ivle_modules_for_all_users_subtask():
+    return poll_ivle_modules.map([id for id, in User.query.values(User.user_id)])
+
 
 @celery.task
 def poll_ivle_modules_for_all_users():
-    poll_ivle_modules.map(
-        [id for id, in User.query.values(User.user_id)]
-    ).delay()
+    poll_ivle_modules_for_all_users_subtask().delay()
+
 
 @celery.task
 def one_task_to_rule_them_all():
-    (poll_ivle_modules_for_all_users.si() | poll_ivle_folders_for_all_users.si() | ivle_workbin_to_dropbox_jobs.si(0) |
-    upload_dropbox_jobs.si()).delay()
+    (poll_ivle_modules_for_all_users_subtask() | poll_ivle_folders_for_all_users_subtask() |
+     ivle_workbin_to_dropbox_jobs_subtask(0) | upload_dropbox_jobs.si()).delay()
