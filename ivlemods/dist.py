@@ -12,6 +12,7 @@ from ivlemods import app
 from ivlemods.celery import celery
 from ivlemods.database import db_session
 from ivlemods.models import User, Job, OnlineStore, IVLEFile, Cache
+import ivlemods.tasks_dropbox
 
 logger = logging.getLogger(__name__)
 r = redis.StrictRedis(host='localhost', port=6379, db=0)
@@ -41,7 +42,6 @@ class SessionHandler():
                     pass
         return retry
 
-
 class CacheFetch():
     def __init__(self, job):
         self.job = job
@@ -49,10 +49,10 @@ class CacheFetch():
             return
         else:
             #check entry, check mutex and wait
-            while self.job.cache == None:
+            if self.job.cache == None:
                 mutex_is_locked = r.getset(self.job.file_id, '1') == '1'
                 if mutex_is_locked:
-                    sleep(2)
+                    raise Exception("CACHE_MUTEX_ERR")
                 else:
                     #mutex is yours
                     try:
@@ -181,24 +181,30 @@ class FileCopier():
 
     @celery.task
     def start(self):
-        try:
-            #check that job still freaking exists
-            self.job = Job.query.filter_by(job_id = self.job_id).first()
-            if self.job == None:
-                logger.warning('job does not exist anymore. Have you cleared the database but not the message queue?')
-                return
+        logger.info("FileCopier - Accept job(%s).", self.job_id)
+        #check that job still freaking exists
+        self.job = Job.query.filter_by(job_id = self.job_id).first()
+        if self.job == None:
+            logger.warning('job does not exist anymore. Have you cleared the database but not the message queue?')
+            return
 
+        logger.info("FileCopier - Preliminary checks for job id(%s) file id(%s) for User %s", self.job.job_id, self.job.file_id, self.job.user_id)
+        try:
             #check that it hasn't been paused in the meantime
             if self.job.status == 6:
                 logger.info("job has been paused.")
                 return
 
+            #check that the cache entry exists before formally starting
+            CacheFetch(self.job)
+
             #mark that we have started the job, and increment retries
-            logger.info("FileCopier - Starting file transfer %s for User %s", self.job.file_id, self.job.user_id)
+            logger.info("FileCopier - Starting job id(%s) file id(%s) for User %s", self.job.job_id, self.job.file_id, self.job.user_id)
             if self.job.status_started == None:
                 self.job.status_started = datetime.now()
             else:
-                self.job.status_retries = self.job.status_retries + 1
+                self.job.status_update = datetime.now()
+                self.job.status_retries += 1
             db_session.commit()
 
             #get the upload strategy, target path and target parent rev
@@ -230,16 +236,24 @@ class FileCopier():
 
         #catch exceptions, paused jobs, logging,
         except Exception, e:
-            if isinstance(e, (list, tuple)) and e.args[0] == "DROPBOX_USR_ERR":
-                logger.warning("FileCopier - Dropbox auth not found, pausing job.")
+            if isinstance(e.args, (list, tuple)) and e.args[0] == "DROPBOX_USR_ERR":
+                logger.warning("FileCopier - Dropbox auth not found, pause job.")
+                #job status 10 is for jobs without dropbox credentials
                 self.job.status = 10
                 db_session.commit()
+                return
+            elif isinstance(e.args, (list, tuple)) and e.args[0] == "CACHE_MUTEX_ERR":
+                logger.warning("FileCopier - File not cached, some other job is downloading, wait.")
+                ivlemods.tasks_dropbox.wait_dropbox_job.delay(self.job_id, 20)
                 return
             else:
                 logger.critical("dist failed")
                 logger.critical(e.args)
                 logger.critical(e.message)
                 logger.critical(traceback.format_exc())
+                #job status 11 is for jobs with mysterious errors
+                self.job.status = 11
+                db_session.commit()
                 raise e
 
     def try_copy_ref(self):
@@ -248,14 +262,14 @@ class FileCopier():
                 try:
                     self.upload_copy_ref(entry.dropbox_copy_ref)
                     db_session.commit()
-                    return
+                    return True
                 except rest.ErrorResponse as e:
                     logger.info("Copy - copy ref failed.")
+                    return False
 
 
     def upload_file(self):
         logger.debug("Copy - NORMAL UPLOAD")
-        CacheFetch(self.job)
         f = open("cache/" + self.job.file_id, 'rb')
         if self.file_rev:
             response = self.cli.put_file(self.file_path, f, parent_rev = self.file_rev)
@@ -349,23 +363,4 @@ def trim_path(path):
      #remove first / in path
      return path[path[0] == '/' :]
 
-
-@celery.task
-def upload_dropbox_jobs():
-    logger.info("Queueing file transfers for all users")
-    for entry in Job.query.filter_by(status = 0).all():
-        entry.status = 1
-        db_session.commit()
-        fc = FileCopier(entry.job_id)
-        FileCopier.start.delay(fc)
-
-
-@celery.task
-def upload_user_dropbox_jobs(user_id):
-    logger.info("Queueing file transfers for user %s", user_id)
-    for entry in Job.query.filter_by(status = 0).filter_by(user_id = user_id).all():
-        entry.status = 1
-        db_session.commit()
-        fc = FileCopier(entry.job_id)
-        FileCopier.start.delay(fc)
 

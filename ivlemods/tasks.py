@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 import logging
 
 from ivlemods.celery import celery
-from ivlemods.dist import upload_dropbox_jobs, upload_user_dropbox_jobs
+from ivlemods.tasks_dropbox import upload_dropbox_jobs, upload_user_dropbox_jobs
 from ivlemods.database import db_session
 from ivlemods.models import User, Job, IVLEFile, IVLEFolder
 from ivlemods.poll_ivle_folders import poll_ivle_folders
