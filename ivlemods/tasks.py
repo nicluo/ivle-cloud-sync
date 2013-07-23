@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 import logging
 
 from ivlemods.celery import celery
-from ivlemods.tasks_dropbox import upload_dropbox_jobs, upload_user_dropbox_jobs
+from ivlemods.tasks_dropbox import upload_dropbox_jobs, upload_user_dropbox_jobs, retry_dropbox_jobs
 from ivlemods.database import db_session
 from ivlemods.models import User, Job, IVLEFile, IVLEFolder
 from ivlemods.poll_ivle_folders import poll_ivle_folders
@@ -109,4 +109,4 @@ def poll_ivle_modules_for_all_users():
 @celery.task
 def one_task_to_rule_them_all():
     (poll_ivle_modules_for_all_users_subtask() | poll_ivle_folders_for_all_users_subtask() |
-     ivle_workbin_to_dropbox_jobs_subtask(0) | upload_dropbox_jobs.si()).delay()
+     ivle_workbin_to_dropbox_jobs_subtask(0) | upload_dropbox_jobs.si() | retry_dropbox_jobs.si()).delay()
