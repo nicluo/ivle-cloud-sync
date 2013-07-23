@@ -223,6 +223,7 @@ class FileCopier():
                     logger.info("Copy - copy ref successful")
                     self.job.status_copy_ref = 1
                     self.job.status = 3
+                    self.job.status_update = datetime.now()
                     self.job.status_completed = datetime.now()
                     db_session.commit()
                     return;
@@ -231,6 +232,7 @@ class FileCopier():
             self.upload_file()
             self.job.status_upload = 1
             self.job.status = 2
+            self.job.status_update = datetime.now()
             self.job.status_completed = datetime.now()
             db_session.commit()
 
@@ -240,6 +242,7 @@ class FileCopier():
                 logger.warning("FileCopier - Dropbox auth not found, pause job.")
                 #job status 10 is for jobs without dropbox credentials
                 self.job.status = 10
+                self.job.status_update = datetime.now()
                 db_session.commit()
                 return
             elif isinstance(e.args, (list, tuple)) and e.args[0] == "CACHE_MUTEX_ERR":
@@ -253,6 +256,7 @@ class FileCopier():
                 logger.critical(traceback.format_exc())
                 #job status 11 is for jobs with mysterious errors
                 self.job.status = 11
+                self.job.status_update = datetime.now()
                 db_session.commit()
                 raise e
 
