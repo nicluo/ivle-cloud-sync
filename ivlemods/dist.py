@@ -13,6 +13,7 @@ from ivlemods.celery import celery
 from ivlemods.database import db_session
 from ivlemods.models import User, Job, OnlineStore, IVLEFile, Cache
 import ivlemods.tasks_dropbox
+from ivlemods.task import SqlAlchemyTask
 
 logger = logging.getLogger(__name__)
 r = redis.StrictRedis(host='localhost', port=6379, db=0)
@@ -179,7 +180,7 @@ class FileCopier():
     def __init__(self, job_id):
         self.job_id = job_id
 
-    @celery.task
+    @celery.task(base=SqlAlchemyTask)
     def start(self):
         logger.info("FileCopier - Accept job(%s).", self.job_id)
         #check that job still freaking exists

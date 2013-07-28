@@ -8,10 +8,11 @@ from ivlemods.models import User, Job, IVLEFile, IVLEFolder
 from ivlemods.poll_ivle_folders import poll_ivle_folders
 from ivlemods.poll_ivle_modules import poll_ivle_modules
 from ivlemods.ivle import IvleClient
+from ivlemods.task import SqlAlchemyTask
 
 logger = logging.getLogger(__name__)
 
-@celery.task
+@celery.task(base=SqlAlchemyTask)
 def ivle_workbin_to_dropbox_job(user_id, duration=0):
     logger.info("Populating dropbox jobs.")
     user = User.query.get(user_id)
@@ -32,7 +33,7 @@ def ivle_workbin_to_dropbox_job(user_id, duration=0):
             file.dropbox_queued = datetime.now()
         db_session.commit()
 
-@celery.task
+@celery.task(base=SqlAlchemyTask)
 def halt_user_dropbox_jobs(user_id):
     logging.info("unsubscribing jobs for user %s", user_id)
     user = User.query.get(user_id)
@@ -48,7 +49,7 @@ def halt_user_dropbox_jobs(user_id):
     db_session.commit()
     logging.info("%s jobs halted.", count)
 
-@celery.task
+@celery.task(base=SqlAlchemyTask)
 def resume_user_dropbox_jobs(user_id):
     #resumes jobs that were due to folders not being synced
     logging.info("resubscribing jobs for user %s", user_id)
@@ -65,7 +66,7 @@ def resume_user_dropbox_jobs(user_id):
     db_session.commit()
     logging.info("%s jobs resumed.", count)
 
-@celery.task
+@celery.task(base=SqlAlchemyTask)
 def dropbox_login_resume_jobs(user_id):
     #resumes jobs that were paused because of missing dropbox login
     logger.info("Resuming file transfers for user %s because He/She had relogged in", user_id)
@@ -83,7 +84,7 @@ def ivle_workbin_to_dropbox_jobs_subtask(duration=0):
     )
 
 
-@celery.task
+@celery.task(base=SqlAlchemyTask)
 def ivle_workbin_to_dropbox_jobs(duration=0):
     ivle_workbin_to_dropbox_jobs_subtask(duration).delay()
 
@@ -92,7 +93,7 @@ def poll_ivle_folders_for_all_users_subtask():
     return poll_ivle_folders.map([id for id, in User.query.values(User.user_id)])
 
 
-@celery.task
+@celery.task(base=SqlAlchemyTask)
 def poll_ivle_folders_for_all_users():
     poll_ivle_folders_for_all_users_subtask().delay()
 
@@ -101,12 +102,12 @@ def poll_ivle_modules_for_all_users_subtask():
     return poll_ivle_modules.map([id for id, in User.query.values(User.user_id)])
 
 
-@celery.task
+@celery.task(base=SqlAlchemyTask)
 def poll_ivle_modules_for_all_users():
     poll_ivle_modules_for_all_users_subtask().delay()
 
 
-@celery.task
+@celery.task(base=SqlAlchemyTask)
 def one_task_to_rule_them_all():
     (poll_ivle_modules_for_all_users_subtask() | poll_ivle_folders_for_all_users_subtask() |
      ivle_workbin_to_dropbox_jobs_subtask(0) | upload_dropbox_jobs.si() | retry_dropbox_jobs.si()).delay()

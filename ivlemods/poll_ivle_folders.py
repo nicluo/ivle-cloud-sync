@@ -5,11 +5,11 @@ from ivlemods.celery import celery
 from ivlemods.database import db_session
 from ivlemods.models import IVLEFile, User, IVLEFolder
 from ivlemods.ivle import IvleClient
-
+from ivlemods.task import SqlAlchemyTask
 
 logger = logging.getLogger(__name__)
 
-@celery.task
+@celery.task(base=SqlAlchemyTask)
 def poll_ivle_folders(user_id):
     logger.info("POLL - IVLE files, folders for user %s.", user_id)
     #get server values

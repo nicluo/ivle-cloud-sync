@@ -4,6 +4,7 @@ from ivlemods.celery import celery
 from ivlemods.database import db_session
 from ivlemods.models import IVLEModule, User
 from ivlemods.ivle import IvleClient
+from ivlemods.task import SqlAlchemyTask
 
 from datetime import datetime, timedelta
 
@@ -33,7 +34,7 @@ def get_ivle_modules(user_id, duration=0):
                              "is_deleted" : mod.is_deleted})
     return user_modules
 
-@celery.task
+@celery.task(base=SqlAlchemyTask)
 def poll_ivle_modules(user_id):
     logger.info("POLL - IVLE modules for user %s.", user_id)
     #get server values
