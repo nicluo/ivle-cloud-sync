@@ -11,3 +11,4 @@ class SqlAlchemyTask(Task):
 
     def after_return(self, status, retval, task_id, args, kwargs, einfo):
         db_session.remove()
+        super(SqlAlchemyTask, self).after_return(*args, **kwargs)
