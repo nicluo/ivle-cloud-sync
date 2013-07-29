@@ -204,7 +204,7 @@ class IVLEModule(Base):
 
     module_id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.user_id'))
-    course_code = Column(String(16))
+    course_code = Column(String(32))
     course_id = Column(String(36))
     checked = Column(DateTime, default=datetime.now)
     is_deleted = Column(Boolean, server_default=text('0'), default=False)
