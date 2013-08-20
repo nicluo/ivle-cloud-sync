@@ -69,9 +69,11 @@ def poll_ivle_modules(user_id):
 
             #update checked modules with current timestamp
             elif courseCode in user_course_codes:
-                #might have to check this in the future, seems safe to ignore for now
-                if result['ID'] ==  '00000000-0000-0000-0000-000000000000':
-                    pass
+                #check for unopened modules
+                null_module = db_user_modules.filter_by(course_code = courseCode)\
+                                             .filter_by(course_id = '00000000-0000-0000-0000-000000000000')
+                if(null_module.count()):
+                    null_module.update({'course_id':result['ID']}, synchronize_session=False)
                 db_user_modules.filter_by(course_code = courseCode)\
                                .update({'checked' : datetime.now()},
 					synchronize_session = False)
@@ -85,3 +87,6 @@ def poll_ivle_modules(user_id):
 
     #finally, commit the changes
     db_session.commit()
+
+def is_null_module(course_id):
+    return course_id == '00000000-0000-0000-0000-000000000000'
