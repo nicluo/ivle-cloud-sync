@@ -1,8 +1,10 @@
+from __future__ import absolute_import
 from datetime import datetime, timedelta
 import logging
 
+from celery import subtask, group
 from ivlemods.celery import celery
-from ivlemods.tasks_dropbox import upload_dropbox_jobs, upload_user_dropbox_jobs, retry_dropbox_jobs
+from ivlemods.tasks_dropbox import upload_dropbox_jobs, upload_user_dropbox_jobs, retry_dropbox_jobs, retry_user_dropbox_jobs
 from ivlemods.database import db_session
 from ivlemods.models import User, Job, IVLEFile, IVLEFolder
 from ivlemods.poll_ivle_folders import poll_ivle_folders
@@ -32,6 +34,8 @@ def ivle_workbin_to_dropbox_job(user_id, duration=0):
                            '/'.join([file.file_path, file.file_name])))
             file.dropbox_queued = datetime.now()
         db_session.commit()
+
+    return
 
 @celery.task(base=SqlAlchemyTask)
 def halt_user_dropbox_jobs(user_id):
@@ -76,38 +80,63 @@ def dropbox_login_resume_jobs(user_id):
     upload_user_dropbox_jobs.delay(user_id)
 
 
-def ivle_workbin_to_dropbox_jobs_subtask(duration=0):
-    return ivle_workbin_to_dropbox_job.starmap(
-        [(id, duration) for id, in User.query.filter(
-            User.workbin_checked < datetime.now() - timedelta(minutes=duration)
-        ).values(User.user_id)]
-    )
+#def ivle_workbin_to_dropbox_jobs_subtask(duration=0):
+#    return ivle_workbin_to_dropbox_job.starmap(
+#        [(id, duration) for id, in User.query.filter(
+#            User.workbin_checked < datetime.now() - timedelta(minutes=duration)
+#        ).values(User.user_id)]
+#    )
+
+
+#@celery.task(base=SqlAlchemyTask)
+#def ivle_workbin_to_dropbox_jobs(duration=0):
+#    ivle_workbin_to_dropbox_jobs_subtask(duration).delay()
+
+
+#def poll_ivle_folders_for_all_users_subtask():
+#    return poll_ivle_folders.map([id for id, in User.query.values(User.user_id)])
+
+
+#@celery.task(base=SqlAlchemyTask)
+#def poll_ivle_folders_for_all_users():
+#    poll_ivle_folders_for_all_users_subtask().delay()
+
+
+#def poll_ivle_modules_for_all_users_subtask():
+#    return poll_ivle_modules.map([id for id, in User.query.values(User.user_id)])
+
+
+#@celery.task(base=SqlAlchemyTask)
+#def poll_ivle_modules_for_all_users():
+#    poll_ivle_modules_for_all_users_subtask().delay()
+
+
+#@celery.task(base=SqlAlchemyTask)
+#def one_task_to_rule_them_all():
+#    (poll_ivle_modules_for_all_users_subtask() | poll_ivle_folders_for_all_users_subtask() |
+#     ivle_workbin_to_dropbox_jobs_subtask(0) | upload_dropbox_jobs.si() | retry_dropbox_jobs.si()).delay()
+
 
 
 @celery.task(base=SqlAlchemyTask)
-def ivle_workbin_to_dropbox_jobs(duration=0):
-    ivle_workbin_to_dropbox_jobs_subtask(duration).delay()
-
-
-def poll_ivle_folders_for_all_users_subtask():
-    return poll_ivle_folders.map([id for id, in User.query.values(User.user_id)])
-
+def one_task_variation_on_user(user_id):
+    (poll_ivle_modules.s(user_id) | poll_ivle_folders.si(user_id) | queue_user_dropbox_jobs.s(user_id))()
+    return
 
 @celery.task(base=SqlAlchemyTask)
-def poll_ivle_folders_for_all_users():
-    poll_ivle_folders_for_all_users_subtask().delay()
-
-
-def poll_ivle_modules_for_all_users_subtask():
-    return poll_ivle_modules.map([id for id, in User.query.values(User.user_id)])
-
+def one_task_for_them_all():
+    (group((poll_ivle_modules.s(user_id) | poll_ivle_folders.si(user_id) | queue_user_dropbox_jobs.s(user_id)) for user_id in [user_id for user_id, in User.query.values(User.user_id)]) | one_task_callback.si())()
+    return
 
 @celery.task(base=SqlAlchemyTask)
-def poll_ivle_modules_for_all_users():
-    poll_ivle_modules_for_all_users_subtask().delay()
-
+def queue_user_dropbox_jobs(change, user_id):
+    if change:
+       (ivle_workbin_to_dropbox_job.s(user_id) | upload_user_dropbox_jobs.si(user_id))()
+    retry_user_dropbox_jobs.si(user_id)()
+    return
 
 @celery.task(base=SqlAlchemyTask)
-def one_task_to_rule_them_all():
-    (poll_ivle_modules_for_all_users_subtask() | poll_ivle_folders_for_all_users_subtask() |
-     ivle_workbin_to_dropbox_jobs_subtask(0) | upload_dropbox_jobs.si() | retry_dropbox_jobs.si()).delay()
+def one_task_callback():
+    #countdown of 30 seconds between runs
+    one_task_for_them_all.apply_async(countdown=30)
+    return

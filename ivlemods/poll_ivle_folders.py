@@ -16,8 +16,10 @@ def poll_ivle_folders(user_id):
     user = User.query.filter(User.user_id == user_id).one()
     client = IvleClient(user.ivle_token)
 
+    #consolidate values from recursion
     folder_list = []
     file_list = []
+    new_items = 0
 
     #use modules from IVLEModules table
     modules = user.ivle_modules.filter_by(is_deleted = False).all()
@@ -35,6 +37,7 @@ def poll_ivle_folders(user_id):
             result = exploreFolders(workbin, args)
             file_list += result['file_list']
             folder_list += result['folder_list']
+            new_items += result['new']
 
     folder_deleted = user.ivle_folders.filter(IVLEFolder.ivle_id.in_(folder_list), IVLEFolder.is_deleted == True) \
                                       .update({'is_deleted': False, 'checked': datetime.now()}, synchronize_session=False)
@@ -47,6 +50,7 @@ def poll_ivle_folders(user_id):
                                      .update({'is_deleted': True, 'checked': datetime.now()}, synchronize_session=False)
 
     db_session.commit()
+    return new_items
 
 
 def exploreFolders(json, args):
@@ -54,6 +58,7 @@ def exploreFolders(json, args):
     client = IvleClient(user.ivle_token)
     folder_list = []
     file_list = []
+    new = 0
     for folder in json['Folders']:
         #add to IVLEFolder
         meta = dict.copy(args)
@@ -92,10 +97,12 @@ def exploreFolders(json, args):
                                           'file_type': file['FileType'],\
                                           'upload_time': datetime.strptime(file['UploadTime_js'][:19], "%Y-%m-%dT%H:%M:%S")})
                 db_session.add(new_ivle_file)
+                new += 1
             db_session.commit()
             file_list.append(file_id)
         result = exploreFolders(folder, meta)
         folder_list += result['folder_list']
         file_list += result['file_list']
-    return {'folder_list': folder_list, 'file_list': file_list}
+        new += result['new']
+    return {'folder_list': folder_list, 'file_list': file_list, 'new': new}
 

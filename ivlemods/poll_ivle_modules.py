@@ -87,6 +87,8 @@ def poll_ivle_modules(user_id):
 
     #finally, commit the changes
     db_session.commit()
+    
+    return
 
 def is_null_module(course_id):
     return course_id == '00000000-0000-0000-0000-000000000000'
