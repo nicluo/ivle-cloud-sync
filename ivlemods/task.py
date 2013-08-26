@@ -9,5 +9,6 @@ class SqlAlchemyTask(Task):
     database is closed on task completion"""
     abstract = True
 
-    def after_return(self, status, retval, task_id, args, kwargs, einfo):
+    def after_return(self, *args, **kwargs):
         db_session.remove()
+        super(SqlAlchemyTask, self).after_return(*args, **kwargs)
