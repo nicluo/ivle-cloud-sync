@@ -14,6 +14,7 @@ from ivlemods.database import db_session
 from ivlemods.models import User, Job, OnlineStore, IVLEFile, Cache
 import ivlemods.tasks_dropbox
 from ivlemods.task import SqlAlchemyTask
+from ivlemods.error import DropboxNoCredentials, CacheMutex
 
 logger = logging.getLogger(__name__)
 r = redis.StrictRedis(host='localhost', port=6379, db=0)
@@ -23,7 +24,7 @@ class SessionHandler():
         user = User.query.get(user_id)
         logger.debug("Session - logging in as user %s", user.user_id)
         if user.dropbox_key == None or user.dropbox_secret == None:
-            raise Exception("DROPBOX_USR_ERR")
+            raise DropboxNoCredentials([user.dropbox_key, user.dropbox_secret])
 
         sess = session.DropboxSession(app.config['DROPBOX_APP_KEY'],
             app.config['DROPBOX_APP_SECRET'], app.config['DROPBOX_ACCESS_TYPE'])
@@ -53,7 +54,7 @@ class CacheFetch():
             if self.job.cache == None:
                 mutex_is_locked = r.getset(self.job.file_id, '1') == '1'
                 if mutex_is_locked:
-                    raise Exception("CACHE_MUTEX_ERR")
+                    raise CacheMutex(self.job.file_id)
                 else:
                     #mutex is yours
                     try:
@@ -241,28 +242,29 @@ class FileCopier():
             db_session.commit()
 
         #catch exceptions, paused jobs, logging,
+        except DropboxNoCredentials, e:
+            logger.warning("FileCopier - No Dropbox Credentials")
+            logger.warning(e.value)
+            #job status 10 is for jobs without dropbox credentials
+            self.job.status = 10
+            self.job.status_update = datetime.now()
+            db_session.commit()
+            return
+        except CacheMutex, e:
+            logger.warning("FileCopier - File not cached, some other job is downloading, wait.")
+            logger.warning("FileCopier - File not cached, some other job is downloading, wait.")
+            ivlemods.tasks_dropbox.wait_dropbox_job.delay(self.job_id, 20)
+            return
         except Exception, e:
-            if isinstance(e.args, (list, tuple)) and e.args[0] == "DROPBOX_USR_ERR":
-                logger.warning("FileCopier - Dropbox auth not found, pause job.")
-                #job status 10 is for jobs without dropbox credentials
-                self.job.status = 10
-                self.job.status_update = datetime.now()
-                db_session.commit()
-                return
-            elif isinstance(e.args, (list, tuple)) and e.args[0] == "CACHE_MUTEX_ERR":
-                logger.warning("FileCopier - File not cached, some other job is downloading, wait.")
-                ivlemods.tasks_dropbox.wait_dropbox_job.delay(self.job_id, 20)
-                return
-            else:
-                logger.critical("dist failed")
-                logger.critical(e.args)
-                logger.critical(e.message)
-                logger.critical(traceback.format_exc())
-                #job status 11 is for jobs with mysterious errors
-                self.job.status = 11
-                self.job.status_update = datetime.now()
-                db_session.commit()
-                raise e
+            logger.critical("dist failed")
+            logger.critical(e.args)
+            logger.critical(e.message)
+            logger.critical(traceback.format_exc())
+            #job status 11 is for jobs with mysterious errors
+            self.job.status = 11
+            self.job.status_update = datetime.now()
+            db_session.commit()
+            raise e
 
     def try_copy_ref(self):
         for entry in self.fetch_copy_ref_db(self.job.file_id):
