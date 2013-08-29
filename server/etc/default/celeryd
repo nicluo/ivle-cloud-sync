@@ -1,6 +1,6 @@
 # Name of nodes to start
 # here we have a single node
-CELERYD_NODES="w1 w2"
+CELERYD_NODES="celery ivle dropbox flask"
 # or we could have three nodes:
 #CELERYD_NODES="w1 w2 w3"
 
@@ -8,7 +8,7 @@ CELERYD_NODES="w1 w2"
 CELERYD_CHDIR="/home/cloudsync/ivle-cloud-sync/"
 
 # Extra arguments to celeryd
-CELERYD_OPTS="-A ivlemods -Q:w2 ivle"
+CELERYD_OPTS="-A ivlemods -Q:ivle ivle -Q:dropbox dropbox -Q:flask flask"
 
 # %n will be replaced with the nodename.
 CELERYD_LOG_FILE="/home/cloudsync/ivle-cloud-sync/%n.log"
