@@ -218,6 +218,9 @@ class FileCopier():
             self.sh = SessionHandler(self.job.user_id)
             self.cli = self.sh.client
 
+            #encode to utf-8 to for dropbox uploads
+            self.file_path = self.file_path.encode('utf-8')
+
             #try to upload copy ref
             if self.method == 'auto':
                 if self.try_copy_ref():
