@@ -63,7 +63,7 @@ def exploreFolders(json, args):
         #add to IVLEFolder
         meta = dict.copy(args)
         meta['name'] = folder['FolderName']
-        meta['path'] = '/'.join([meta['path'], meta['name'].strip()])
+        meta['path'] = '/'.join([meta['path'].strip(), meta['name'].strip()])
         meta['ivle_id'] = folder['ID']
 
         db_folder = user.ivle_folders.filter_by(ivle_id = meta['ivle_id'])
