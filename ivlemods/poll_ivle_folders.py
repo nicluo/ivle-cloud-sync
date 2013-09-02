@@ -32,8 +32,8 @@ def poll_ivle_folders(user_id):
                 'user_id': user_id,
                 'course_code': courseCode,
                 'ivle_workbin_id': workbin['ID'],
-                'path': ' '.join([courseCode.replace("/", "+"), workbin['Title']])
-            }
+                'path': ' '.join([courseCode.replace("/", "+").strip(), workbin['Title'].strip()])
+                }
             result = exploreFolders(workbin, args)
             file_list += result['file_list']
             folder_list += result['folder_list']
@@ -63,7 +63,7 @@ def exploreFolders(json, args):
         #add to IVLEFolder
         meta = dict.copy(args)
         meta['name'] = folder['FolderName']
-        meta['path'] = '/'.join([meta['path'], meta['name']])
+        meta['path'] = '/'.join([meta['path'], meta['name']].strip())
         meta['ivle_id'] = folder['ID']
 
         db_folder = user.ivle_folders.filter_by(ivle_id = meta['ivle_id'])
