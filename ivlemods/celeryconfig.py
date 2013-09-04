@@ -20,6 +20,7 @@ CELERY_ROUTES = {
     'ivlemods.tasks_dropbox.upload_dropbox_jobs' : {'queue' : 'dropbox'},
     'ivlemods.tasks_dropbox.retry_dropbox_jobs' : {'queue' : 'dropbox'},
     'ivlemods.tasks_dropbox.upload_user_dropbox_jobs' : {'queue' : 'dropbox'},
-    'ivlemods.tasks_dropbox.retry_user_dropbox_jobs' : {'queue' : 'dropbox'}
+    'ivlemods.tasks_dropbox.retry_user_dropbox_jobs' : {'queue' : 'dropbox'},
+    'ivlemods.dist.FileCopier.start' : {'queue' : 'dropbox'}
 }
 CELERY_RESULT_BACKEND = 'redis://'
