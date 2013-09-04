@@ -13,7 +13,7 @@ file_handler.setFormatter(logging.Formatter(
 ))
 file_handler.setLevel(logging.INFO)
 
-mail_handler = SMTPHandler('smtp.gmail.com', 'ivlecloudsync@gmail.com',
+mail_handler = SMTPHandler(('smtp.gmail.com', 587), 'ivlecloudsync@gmail.com',
     app.config['ADMINS'], 'IVLE Cloud Sync Error',
     credentials=('ivlecloudsync@gmail.com', '***REMOVED***'), secure=())
 mail_handler.setFormatter(logging.Formatter('''
