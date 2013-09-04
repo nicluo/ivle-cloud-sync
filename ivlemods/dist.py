@@ -280,13 +280,44 @@ class FileCopier():
 
     def upload_file(self):
         logger.debug("Copy - NORMAL UPLOAD")
-        f = open("cache/" + self.job.file_id, 'rb')
+        file_size = os.stat('cache/' + self.job.file_id).st_size
+        #40 mb
+        if file_size > 41943040:
+            response = self.upload_file_chunked()
+        else:
+            response = self.upload_file_put()
+        self.post_upload_actions(response)
+
+    def upload_file_chunked(self):
+        logger.debug("Copy - CHUNKA UPLOAD")
+        file_size = os.stat('cache/' + self.job.file_id).st_size
+        f = open('cache/' + self.job.file_id, 'rb')
+        uploader = self.cli.get_chunked_uploader(f, file_size)
+        while uploader.offset < file_size:
+            try:
+                upload = uploader.upload_chunked()
+            except rest.ErrorResponse, e:
+                # perform error handling and retry logic
+                logger.warning(e)
+                # ignore first
+        f.close()
+
+        #commit chunked uploader
+        if self.file_rev:
+            response = uploader.finish(self.file_path, parent_rev = self.file_rev)
+        else:
+            response = uploader.finish(self.file_path)
+        return response
+
+    def upload_file_put(self):
+        logger.debug("Copy - PUT UPLOAD")
+        f = open('cache/' + self.job.file_id, 'rb')
         if self.file_rev:
             response = self.cli.put_file(self.file_path, f, parent_rev = self.file_rev)
         else:
             response = self.cli.put_file(self.file_path, f)
         f.close()
-        self.post_upload_actions(response)
+        return response
 
     def upload_copy_ref(self, copy_ref_entry):
         try:
