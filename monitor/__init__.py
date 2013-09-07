@@ -9,7 +9,7 @@ file_handler.setFormatter(logging.Formatter(
 file_handler.setLevel(logging.DEBUG)
 
 mail_handler = SMTPHandler(('smtp.gmail.com', 587), 'ivlecloudsync@gmail.com',
-    ['nicholasluo@gmail.com'], 'CloudSync Monitor Error',
+    ['nicholasluo@gmail.com', 'ahbengish@gmail.com'], 'CloudSync Monitor Error',
     credentials=('ivlecloudsync@gmail.com', '***REMOVED***'), secure=())
 mail_handler.setFormatter(logging.Formatter('''
 Message type:       %(levelname)s
@@ -32,7 +32,7 @@ main_logger.addHandler(file_handler)
 main_logger.addHandler(mail_handler)
 
 schedule_mail_handler = SMTPHandler(('smtp.gmail.com', 587), 'ivlecloudsync@gmail.com',
-    ['nicholasluo@gmail.com'], 'CloudSync Monitor Scheduled Message',
+    ['nicholasluo@gmail.com', 'ahbengish@gmail.com'], 'CloudSync Monitor Scheduled Message',
     credentials=('ivlecloudsync@gmail.com', '***REMOVED***'), secure=())
 mail_handler.setFormatter(logging.Formatter('''
 Message type:       %(levelname)s

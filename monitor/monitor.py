@@ -12,7 +12,7 @@ def gen_six_hourly():
     #generate 6 hourly dates
     dates = [datetime.combine(date.today(), time(0)),
              datetime.combine(date.today(), time(6)),
-             datetime.combine(date.today(), time(16, 30)),
+             datetime.combine(date.today(), time(12)),
              datetime.combine(date.today(), time(18))]
     return dates
 
