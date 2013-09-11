@@ -118,9 +118,20 @@ def dropbox_login_resume_jobs(user_id):
 
 
 
+#unused
 @celery.task(base=SqlAlchemyTask)
-def one_task_variation_on_user(user_id):
+def one_task_on_user(user_id):
     (poll_ivle_modules.s(user_id) | poll_ivle_folders.si(user_id) | queue_user_dropbox_jobs.s(user_id))()
+    return
+
+#priority for new log-ins
+#calls task directly 
+@celery.task(base=SqlAlchemyTask)
+def one_task_on_user_flask(user_id):
+    poll_ivle_modules(user_id)
+    poll_ivle_folders(user_id)
+    #override change flag
+    queue_user_dropbox_jobs(True, user_id)
     return
 
 @celery.task(base=SqlAlchemyTask)
@@ -137,6 +148,13 @@ def queue_user_dropbox_jobs(change, user_id):
 
 @celery.task(base=SqlAlchemyTask)
 def one_task_callback():
+    #countdown of 30 seconds between runs
+    one_task_for_them_all.apply_async(countdown=30)
+    return
+
+@celery.task(base=SqlAlchemyTask)
+def one_task_errback():
+    logger.warning('One task errback is called')
     #countdown of 30 seconds between runs
     one_task_for_them_all.apply_async(countdown=30)
     return
