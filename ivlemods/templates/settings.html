@@ -38,8 +38,13 @@
     <h2>We are rushing to get your files from IVLE.</h2>
     <p>Please wait....</p>
     <div>
-    <img  style="min-width:200px;max-width:600px;" src="{{url_for('static', filename='settings-img/wait.png' )}}" alt="Wait for your files!">
-  </div>
+      <img  style="min-width:200px;max-width:600px;" src="{{url_for('static', filename='settings-img/wait.png' )}}" alt="Wait for your files!">
+    </div>
+    <script>
+      $(document).ready(function(){
+        setTimeout(function(){ location.reload(); }, 7000);
+      })
+    </script>
   {% endif %}
 </div>
 
