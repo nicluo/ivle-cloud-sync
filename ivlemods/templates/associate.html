@@ -6,6 +6,12 @@
 </div>
 
 <div class="center" data-role="content">
+  <img class="img-standard" src="{{url_for('static', filename='associate-img/ivle-connect-dropbox.png' )}}" alt="Connect your Dropbox account">
+
+  
+  <h1>Part Two: Associate with Dropbox</h1>
+  <p>To proceed, please log in with the Dropbox account you wish to snyc your files with.</p>
+  <br><br>
   <a href="https://www.dropbox.com/"><img src="{{ url_for('static', filename='img/pe-web.png') }}"></a><br>
   {% if not user.dropbox_key %}
   Connect with Dropbox to sync your Workbin files.<br>
