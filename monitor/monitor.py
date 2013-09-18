@@ -68,8 +68,8 @@ def watch():
     #generate the alarm times for problems to be raised
     alarm_list = []
     create_alarm(15, alarm_list)
-    create_alarm(30, alarm_list)
-    create_alarm(60, alarm_list)
+    create_alarm(45, alarm_list)
+    create_alarm(90, alarm_list)
 
     #initial states
     times = []
@@ -91,6 +91,7 @@ def watch():
                 #alarmed
                 logger.warning('Alarm triggered. CloudSync one_task hasn\'t been scheduled for %s minutes.', alarm_state) 
         else:
+            logger.warning('Alarm reset. CloudSync one_task is found to be scheduled. Last alarm: %s minutes.', alarm_state) 
             #reset alarm
             alarm_state = 0
 
@@ -99,7 +100,9 @@ def watch():
         scheduled = 0
         if i.scheduled():
             scheduled = len(i.scheduled()[inspect_worker_name])
-            worker_alarm_state = 0
+            if worker_alarm_state:
+                logger.warning('Worker %s is now inspectable. Woohoo...', inspect_worker_name) 
+                worker_alarm_state = 0
         elif worker_alarm_state == 0:
             #worker isn't alive
             logger.warning('Worker %s not inspectable. Is the worker running and alive.', inspect_worker_name) 
