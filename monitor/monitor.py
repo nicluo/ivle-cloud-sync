@@ -85,15 +85,15 @@ def watch():
         if(state == 0):
             diff = datetime.now() - now
             res = check_alarms(diff.total_seconds() / 60, alarm_list)
-            if res and res > alarm_state:
+            if res and res > task_alarm_state:
                 #ignore repeat alarms from the same limit
-                alarm_state = res
+                task_alarm_state = res
                 #alarmed
-                logger.warning('Alarm triggered. CloudSync one_task hasn\'t been scheduled for %s minutes.', alarm_state) 
+                logger.warning('Alarm triggered. CloudSync one_task hasn\'t been scheduled for %s minutes.', task_alarm_state) 
         else:
-            logger.warning('Alarm reset. CloudSync one_task is found to be scheduled. Last alarm: %s minutes.', alarm_state) 
+            logger.warning('Alarm reset. CloudSync one_task is found to be scheduled. Last alarm: %s minutes.', task_alarm_state) 
             #reset alarm
-            alarm_state = 0
+            task_alarm_state = 0
 
         #collect statistics
         i = celery.control.inspect([inspect_worker_name])
