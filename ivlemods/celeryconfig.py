@@ -6,15 +6,8 @@ BROKER_URL = 'redis://localhost:6379/0'
 BROKER_TRANSPORT_OPTIONS = {'visibility_timeout': 3600}
 CELERY_IMPORTS = ['ivlemods.tasks']
 # CELERY_TIMEZONE = 'Singapore'
-#celery beat for one task callback
-#using the callback resets the alarms
-#so we will know if it fails again.
 CELERYBEAT_SCHEDULE = {
-    'every-morning': {
-        'task': 'ivlemods.tasks.one_task_callback',
-        'schedule': crontab(hour=4, minute=30)
     }
-}
 CELERY_ROUTES = {
     'ivlemods.poll_ivle_folders.poll_ivle_folders': {'queue': 'ivle'},
     'ivlemods.poll_ivle_modules.poll_ivle_modules': {'queue': 'ivle'},

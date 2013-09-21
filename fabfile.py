@@ -8,5 +8,5 @@ def deploy():
         run('git pull')
         run('sudo pip install -r requirements.txt')
         run('/etc/init.d/celeryd restart')
-        run('/etc/init.d/celerybeat restart')
+        #run('/etc/init.d/celerybeat restart')
         run('sudo service uwsgi restart')

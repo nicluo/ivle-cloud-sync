@@ -7,6 +7,7 @@ logger = logging.getLogger(__name__)
 mail_logger = logging.getLogger('mail.monitor')
 
 from ivlemods.celery import celery
+from ivlemods.tasks import one_task_callback
 
 def gen_six_hourly():
     #generate 6 hourly dates
@@ -34,16 +35,16 @@ def check_dates(dates):
     else:
         return False
 
-def create_alarm(minutes, alarm_list):
+def create_alarm(minutes, reboot, alarm_list):
     #appends alarm to alarm_list
-    alarm_list.append(minutes)
-    alarm_list.sort(reverse=True)
+    alarm_list.append((minutes, reboot))
+    alarm_list.sort(key=lambda tup: tup[0], reverse=True)
 
 def check_alarms(inactive_minutes, alarm_list):
     #triggers mail logging
-    for times in alarm_list:
+    for times, reboot in alarm_list:
         if(inactive_minutes > times):
-            return times
+            return (times, reboot) 
     return False
 
 def email_statistics(times):
@@ -58,8 +59,8 @@ def email_statistics(times):
 def watch():
     #main loop to be called
     #dev
-    #inspect_worker_name = 'celery1.localhost'
-    inspect_worker_name = 'celery.cloudsync'
+    inspect_worker_name = 'celery1.localhost'
+    #inspect_worker_name = 'celery.cloudsync'
 
     #generate the times when statistics are mailed
     mail_times = gen_six_hourly()
@@ -67,9 +68,9 @@ def watch():
 
     #generate the alarm times for problems to be raised
     alarm_list = []
-    create_alarm(15, alarm_list)
-    create_alarm(45, alarm_list)
-    create_alarm(90, alarm_list)
+    create_alarm(15, 0, alarm_list)
+    create_alarm(45, 0, alarm_list)
+    create_alarm(90, 1, alarm_list)
 
     #initial states
     times = []
@@ -81,46 +82,27 @@ def watch():
     worker_alarm_state = 0
 
     while True:
-        #check for alarms
-        if(state == 0):
-            diff = datetime.now() - now
-            res = check_alarms(diff.total_seconds() / 60, alarm_list)
-            if res and res > task_alarm_state:
-                #ignore repeat alarms from the same limit
-                task_alarm_state = res
-                #alarmed
-                logger.warning('Alarm triggered. CloudSync one_task hasn\'t been scheduled for %s minutes.', task_alarm_state) 
-        else:
-            logger.warning('Alarm reset. CloudSync one_task is found to be scheduled. Last alarm: %s minutes.', task_alarm_state) 
-            #reset alarm
-            task_alarm_state = 0
-
         #collect statistics
         i = celery.control.inspect([inspect_worker_name])
         scheduled = 0
+
+        #checks for worker running status, i.scheduled() should be callable if the celery worker is inspectable.
         if i.scheduled():
+            #worker is alive and running
+            #update scheduled as the number of tasks that are scheduled
+            #this detetts the 30 seconds delay in one_task_callback
             scheduled = len(i.scheduled()[inspect_worker_name])
             if worker_alarm_state:
-                logger.warning('Worker %s is now inspectable. Woohoo...', inspect_worker_name) 
+                #reset worker alarm state
                 worker_alarm_state = 0
+                logger.warning('Worker %s is now inspectable. Woohoo...', inspect_worker_name) 
         elif worker_alarm_state == 0:
             #worker isn't alive
-            logger.warning('Worker %s not inspectable. Is the worker running and alive.', inspect_worker_name) 
-            #ignore repeat alarms
+            #set worker alarm state and ignore repeat alarms
             worker_alarm_state = 1
-
-
-        #check for scheduled reports
-        if check_dates(mail_times):
-            #mail results here
-            if(len(times)):
-                email_statistics(times)
-            else:
-                logger.info('Not enough run statistics. Not reporting statistics')
-            times = []
+            logger.warning('Worker %s not inspectable. Is the worker running and alive.', inspect_worker_name) 
 
         if not state == scheduled:
-
             #state is the number of things in the scheduled queue
             logger.debug(state)
             state = scheduled
@@ -134,5 +116,35 @@ def watch():
                 times.append(int(diff.total_seconds()))
                 logger.info('Scheduled task detected - one_task is queued')
                 logger.info('Current Run %s', diff)
+
+
+        #check for scheduled reports
+        if check_dates(mail_times):
+            #mail results here
+            if(len(times)):
+                email_statistics(times)
+            else:
+                logger.info('Not enough run statistics. Not reporting statistics')
+            times = []
+
+        #check for task alarms (if one_task hasn't been running for a while)
+        if(state == 0):
+            diff = datetime.now() - now
+            res = check_alarms(diff.total_seconds() / 60, alarm_list)
+            if res:
+                res_state, res_reboot = res
+                if res_state > task_alarm_state:
+                    #ignore repeat alarms from the same limit
+                    task_alarm_state = res_state
+                    #alarmed
+                    logger.warning('Alarm triggered. CloudSync one_task hasn\'t been scheduled for %s minutes. Reboot Flag: %s', task_alarm_state, res_reboot) 
+                    if res_reboot:
+                        one_task_callback.delay()
+                        logger.warning('Attempting to run one_task_callback.') 
+        else:
+            if task_alarm_state:
+                logger.warning('Alarm reset. CloudSync one_task is found to be scheduled. Last alarm: %s minutes.', task_alarm_state) 
+                #reset alarm
+                task_alarm_state = 0
 
         sleep(10)
