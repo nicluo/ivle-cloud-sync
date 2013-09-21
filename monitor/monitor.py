@@ -59,8 +59,8 @@ def email_statistics(times):
 def watch():
     #main loop to be called
     #dev
-    inspect_worker_name = 'celery1.localhost'
-    #inspect_worker_name = 'celery.cloudsync'
+    #inspect_worker_name = 'celery1.localhost'
+    inspect_worker_name = 'celery.cloudsync'
 
     #generate the times when statistics are mailed
     mail_times = gen_six_hourly()
