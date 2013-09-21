@@ -38,7 +38,7 @@ def upload_user_dropbox_jobs(user_id):
 def retry_user_dropbox_jobs(user_id):
     logger.info("Retrying file transfers for user %s", user_id)
     max_retries = 5
-    for entry in Job.query.filter_by(status = 11).filter_by(status_retries < max_retries).filter_by(user_id = user_id).all():
+    for entry in Job.query.filter(Job.status == 11, Job.status_retries < max_retries, Job.user_id == user_id).all():
         entry.status = 1
         db_session.commit()
         fc = dist.FileCopier(entry.job_id)
