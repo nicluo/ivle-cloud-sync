@@ -15,9 +15,10 @@ import sqlalchemy as sa
 
 
 def upgrade():
-    op.add_column('users', sa.Column('dropbox_data_quota', sa.Integer, nullable=True))
-    op.add_column('users', sa.Column('dropbox_data_normal', sa.Integer, nullable=True))
-    op.add_column('users', sa.Column('dropbox_data_shared', sa.Integer, nullable=True))
+    op.add_column('users', sa.Column('dropbox_data_quota', sa.BigInteger(), nullable=True))
+    op.add_column('users', sa.Column('dropbox_data_normal', sa.BigInteger(), nullable=True))
+    op.add_column('users', sa.Column('dropbox_data_shared', sa.BigInteger(), nullable=True))
+    op.add_column('users', sa.Column('dropbox_data_datastores', sa.BigInteger(), nullable=True))
 
 
 def downgrade():
@@ -25,4 +26,5 @@ def downgrade():
     op.drop_column('users', 'dropbox_data_quota')
     op.drop_column('users', 'dropbox_data_shared')
     op.drop_column('users', 'dropbox_data_normal')
+    op.drop_column('users', 'dropbox_data_datastores')
     ### end Alembic commands ###

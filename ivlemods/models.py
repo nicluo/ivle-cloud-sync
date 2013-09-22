@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column, Date, DateTime, Integer, String, Boolean, Text
+from sqlalchemy import Column, Date, DateTime, Integer, String, Boolean, Text, BigInteger
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.schema import ForeignKey
 from sqlalchemy.sql.expression import text
@@ -18,9 +18,10 @@ class User(Base):
     dropbox_uid = Column(Integer)
     dropbox_key = Column(String(16))
     dropbox_secret = Column(String(15))
-    dropbox_data_quota = Column(Integer)
-    dropbox_data_normal = Column(Integer)
-    dropbox_data_shared = Column(Integer)
+    dropbox_data_quota = Column(BigInteger)
+    dropbox_data_normal = Column(BigInteger)
+    dropbox_data_shared = Column(BigInteger)
+    dropbox_data_datastores = Column(BigInteger)
     workbin_checked = Column(DateTime)
 
     def __init__(self, ivle_uid, ivle_email, ivle_name, ivle_token,
@@ -34,6 +35,7 @@ class User(Base):
         self.dropbox_data_quota = quota_info['quota'] 
         self.dropbox_data_normal = quota_info['normal']
         self.dropbox_data_shared = quota_info['shared']
+        self.dropbox_data_datastores = quota_info['datastores']
         self.workbin_checked = datetime.now()
 
 
