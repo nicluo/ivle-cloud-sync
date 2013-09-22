@@ -16,33 +16,10 @@ import ivlemods.tasks_dropbox
 from ivlemods.task import SqlAlchemyTask
 from ivlemods.error import DropboxNoCredentials, CacheMutex
 
+from ivlemods.dropbox_session import SessionHandler
+
 logger = logging.getLogger(__name__)
 r = redis.StrictRedis(host='localhost', port=6379, db=0)
-
-class SessionHandler():
-    def __init__(self, user_id):
-        user = User.query.get(user_id)
-        logger.debug("Session - logging in as user %s", user.user_id)
-        if user.dropbox_key == None or user.dropbox_secret == None:
-            raise DropboxNoCredentials([user.dropbox_key, user.dropbox_secret])
-
-        sess = session.DropboxSession(app.config['DROPBOX_APP_KEY'],
-            app.config['DROPBOX_APP_SECRET'], app.config['DROPBOX_ACCESS_TYPE'])
-        sess.set_token(user.dropbox_key, user.dropbox_secret)
-        self.client = client.DropboxClient(sess)
-    
-    def ignore_timeout(self, func):
-        def retry(*args, **kwargs):
-            complete = False
-            while not complete:
-                try:
-                    meta = func(*args, **kwargs)
-                    return meta
-                except rest.RESTSocketError as e:
-                    logger.debug('TIMEOUT DETECTED')
-                    #ignore timeouts
-                    pass
-        return retry
 
 class CacheFetch():
     def __init__(self, job):
@@ -175,13 +152,10 @@ class FileProcessOverwrite():
     def get_target_file_rev(self):
         return self.return_rev
 
-
-
 class FileCopier():
     def __init__(self, job_id):
         self.job_id = job_id
 
-    @celery.task(base=SqlAlchemyTask)
     def start(self):
         logger.info("FileCopier - Accept job(%s).", self.job_id)
         #check that job still freaking exists
