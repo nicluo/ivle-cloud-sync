@@ -18,16 +18,22 @@ class User(Base):
     dropbox_uid = Column(Integer)
     dropbox_key = Column(String(16))
     dropbox_secret = Column(String(15))
+    dropbox_data_quota = Column(Integer)
+    dropbox_data_normal = Column(Integer)
+    dropbox_data_shared = Column(Integer)
     workbin_checked = Column(DateTime)
 
     def __init__(self, ivle_uid, ivle_email, ivle_name, ivle_token,
-                 dropbox_key=None, dropbox_secret=None):
+            dropbox_key=None, dropbox_secret=None, quota_info={'shared': None, 'quota':None, 'normal':None}):
         self.ivle_uid = ivle_uid
         self.ivle_email = ivle_email
         self.ivle_name = ivle_name
         self.ivle_token = ivle_token
         self.dropbox_key = dropbox_key
         self.dropbox_secret = dropbox_secret
+        self.dropbox_data_quota = quota_info['quota'] 
+        self.dropbox_data_normal = quota_info['normal']
+        self.dropbox_data_shared = quota_info['shared']
         self.workbin_checked = datetime.now()
 
 
@@ -146,6 +152,7 @@ class Job(Base):
     date_added = Column(DateTime, default=datetime.now)
     status_update = Column(DateTime, default=datetime.now, onupdate=datetime.now)
     status_started = Column(DateTime)
+    status_retry = Column(DateTime)
     status_completed = Column(DateTime)
     status = Column(Integer, server_default=text('0'))
     status_retries = Column(Integer, server_default = text('0'))
