@@ -21,6 +21,17 @@ from ivlemods.dropbox_session import SessionHandler
 logger = logging.getLogger(__name__)
 r = redis.StrictRedis(host='localhost', port=6379, db=0)
 
+def try_lock(lock, fail_message):
+    logger.debug('trying for lock %s', lock)
+    mutex_is_locked = r.getset(lock, '1') == '1'
+    if mutex_is_locked:
+        raise CacheMutex(lock, fail_message) 
+
+def release_lock(lock):
+    logger.debug('release lock %s', lock)
+    r.set(lock, 'None')
+
+
 class CacheFetch():
     def __init__(self, job):
         self.job = job
@@ -29,26 +40,22 @@ class CacheFetch():
         else:
             #check entry, check mutex and wait
             if self.job.cache == None:
-                mutex_is_locked = r.getset(self.job.file_id, '1') == '1'
-                if mutex_is_locked:
-                    raise CacheMutex(self.job.file_id)
+                try_lock(self.job.file_id, "FileCopier - File not cached, some other job is downloading, wait.")
+                #mutex is yours
+                try:
+                    #check again that there is no entry
+                    if self.job.cache == None:
+                        #go ahead and download
+                        if self.job.method == 'http':
+                            self.download_from_http()
+                        #create cache entry
+                        self.create_cache_entry()
+                except:
+                    release_lock(self.job.file_id)
+                    raise
                 else:
-                    #mutex is yours
-                    try:
-                        if self.job.cache == None:
-                            #go ahead and download
-                            if self.job.method == 'http':
-                                self.download_from_http()
-                            #there is no entry
-                            #create cache entry
-                            self.create_cache_entry()
-                            #commit cache entry
-                    except:
-                        r.set(self.job.file_id, 'None')
-                        raise
-                    else:
-                        r.set(self.job.file_id, 'None')
-                        return
+                    release_lock(self.job.file_id)
+                    return
 
     def create_cache_entry(self):
         new_cache = Cache({'file_id':self.job.file_id,
@@ -225,8 +232,7 @@ class FileCopier():
             db_session.commit()
             return
         except CacheMutex, e:
-            logger.warning("FileCopier - File not cached, some other job is downloading, wait.")
-            logger.warning("FileCopier - File not cached, some other job is downloading, wait.")
+            logger.info('Lock conflict: lock - %s, message - %s', e.lock, e.value)
             ivlemods.tasks_dropbox.wait_dropbox_job.delay(self.job_id, 20)
             return
         except Exception, e:
@@ -264,23 +270,31 @@ class FileCopier():
 
     def upload_file_chunked(self):
         logger.debug("Copy - CHUNKA UPLOAD")
-        file_size = os.stat('cache/' + self.job.file_id).st_size
-        f = open('cache/' + self.job.file_id, 'rb')
-        uploader = self.cli.get_chunked_uploader(f, file_size)
-        while uploader.offset < file_size:
-            try:
-                upload = uploader.upload_chunked()
-            except rest.ErrorResponse, e:
-                # perform error handling and retry logic
-                logger.warning(e)
-                # ignore first
-        f.close()
+        try_lock('chunk', 'Copy - Chunk upload lock failed')
+        try:
+            file_size = os.stat('cache/' + self.job.file_id).st_size
+            f = open('cache/' + self.job.file_id, 'rb')
+            uploader = self.cli.get_chunked_uploader(f, file_size)
+            while uploader.offset < file_size:
+                try:
+                    upload = uploader.upload_chunked()
+                except rest.ErrorResponse, e:
+                    # perform error handling and retry logic
+                    logger.warning(e)
+                    # ignore first
+            f.close()
 
-        #commit chunked uploader
-        if self.file_rev:
-            response = uploader.finish(self.file_path, parent_rev = self.file_rev)
-        else:
-            response = uploader.finish(self.file_path)
+            #commit chunked uploader
+            if self.file_rev:
+                response = uploader.finish(self.file_path, parent_rev = self.file_rev)
+            else:
+                response = uploader.finish(self.file_path)
+            release_lock('chunk')
+
+        except Exception, e:
+            release_lock('chunk')
+            raise e
+
         return response
 
     def upload_file_put(self):
