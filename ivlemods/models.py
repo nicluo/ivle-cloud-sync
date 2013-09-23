@@ -25,7 +25,8 @@ class User(Base):
     workbin_checked = Column(DateTime)
 
     def __init__(self, ivle_uid, ivle_email, ivle_name, ivle_token,
-            dropbox_key=None, dropbox_secret=None, quota_info={'shared': None, 'quota':None, 'normal':None}):
+            dropbox_key=None, dropbox_secret=None, 
+	    quota_info={'shared': None, 'quota':None, 'normal':None, 'datastores':None}):
         self.ivle_uid = ivle_uid
         self.ivle_email = ivle_email
         self.ivle_name = ivle_name
