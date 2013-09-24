@@ -190,9 +190,7 @@ class FileCopier():
             if self.job.status_started == None:
                 self.job.status_started = datetime.now()
             else:
-                self.job.status_update = datetime.now()
                 self.job.status_retry = datetime.now()
-                self.job.status_retries += 1
             db_session.commit()
 
             #get the upload strategy, target path and target parent rev

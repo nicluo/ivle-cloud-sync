@@ -17,6 +17,9 @@ logger = logging.getLogger(__name__)
 def wait_dropbox_job(job_id, time = 20):
     #time is in seconds
     entry = Job.query.filter_by(job_id = job_id).one()
+    #update time of update, status 1 so it doesn't get queued again
+    entry.status_update = datetime.now()
+    entry.status = 1
     file_copier_task.apply_async(args=[entry.job_id], countdown=time)
 
 @celery.task(base=SqlAlchemyTask)
@@ -42,6 +45,9 @@ def retry_user_dropbox_jobs(user_id):
     logger.info("Retrying file transfers for user %s", user_id)
     max_retries = 5
     for entry in Job.query.filter(Job.status == 11, Job.status_retries < max_retries, Job.user_id == user_id).all():
+        #update time of update, increment retries, set status 1 so it doesn't get queued again
+        entry.status_update = datetime.now()
+        entry.job.status_retries += 1
         entry.status = 1
         db_session.commit()
         file_copier_task.delay(entry.job_id)
