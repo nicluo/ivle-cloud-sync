@@ -22,6 +22,7 @@ class User(Base):
     dropbox_data_normal = Column(BigInteger)
     dropbox_data_shared = Column(BigInteger)
     dropbox_data_datastores = Column(BigInteger)
+    dropbox_quota_checked = Column(DateTime)
     workbin_checked = Column(DateTime)
 
     def __init__(self, ivle_uid, ivle_email, ivle_name, ivle_token,
@@ -134,6 +135,7 @@ class Cache(Base):
     status_completed = Column(DateTime)
     status_fail = Column(Integer, server_default=text('0'))
     status_retries = Column(Integer, server_default=text('0'))
+    file_size = Column(BigInteger)
 
     user = relationship("User")
 
