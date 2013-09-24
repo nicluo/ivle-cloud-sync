@@ -32,7 +32,7 @@ def release_lock(lock):
     r.set(lock, 'None')
 
 def check_dropbox_quota(user_id):
-    update_dropbox_quota(user_id)
+    ivlemods.tasks_dropbox.update_dropbox_quota(user_id)
     user = User.query.get(user_id)
     return user.dropbox_data_quota - user.dropbox_data_shared - user.dropbox_data_normal
 
@@ -244,6 +244,7 @@ class FileCopier():
             logger.info('User has exceeded Dropbox quota. File: %s, Quota: %s', e.file_size, e.quota)
             self.job.status = 12
             self.job.status_update = datetime.now()
+            db_session.commit()
             return
         except Exception, e:
             logger.critical("dist failed")
