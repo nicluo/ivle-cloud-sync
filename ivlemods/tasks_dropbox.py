@@ -55,7 +55,7 @@ def retry_user_dropbox_jobs(user_id):
 @celery.task(base=SqlAlchemyTask)
 def update_dropbox_quotas():
     logger.info("Updating dropbox quotas for all users")
-    group(update_dropbox_quota.s(user_id) for user_id in [id for id, in User.query.filter(User.dropbox_key != None).values(User.user_id)]).delay()
+    group(update_user_dropbox_quota.s(user_id) for user_id in [id for id, in User.query.filter(User.dropbox_key != None).values(User.user_id)]).delay()
 
 @celery.task(base=SqlAlchemyTask)
 def update_user_dropbox_quota(user_id):
