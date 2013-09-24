@@ -79,51 +79,6 @@ def dropbox_login_resume_jobs(user_id):
         db_session.commit()
     upload_user_dropbox_jobs.delay(user_id)
 
-
-#def ivle_workbin_to_dropbox_jobs_subtask(duration=0):
-#    return ivle_workbin_to_dropbox_job.starmap(
-#        [(id, duration) for id, in User.query.filter(
-#            User.workbin_checked < datetime.now() - timedelta(minutes=duration)
-#        ).values(User.user_id)]
-#    )
-
-
-#@celery.task(base=SqlAlchemyTask)
-#def ivle_workbin_to_dropbox_jobs(duration=0):
-#    ivle_workbin_to_dropbox_jobs_subtask(duration).delay()
-
-
-#def poll_ivle_folders_for_all_users_subtask():
-#    return poll_ivle_folders.map([id for id, in User.query.values(User.user_id)])
-
-
-#@celery.task(base=SqlAlchemyTask)
-#def poll_ivle_folders_for_all_users():
-#    poll_ivle_folders_for_all_users_subtask().delay()
-
-
-#def poll_ivle_modules_for_all_users_subtask():
-#    return poll_ivle_modules.map([id for id, in User.query.values(User.user_id)])
-
-
-#@celery.task(base=SqlAlchemyTask)
-#def poll_ivle_modules_for_all_users():
-#    poll_ivle_modules_for_all_users_subtask().delay()
-
-
-#@celery.task(base=SqlAlchemyTask)
-#def one_task_to_rule_them_all():
-#    (poll_ivle_modules_for_all_users_subtask() | poll_ivle_folders_for_all_users_subtask() |
-#     ivle_workbin_to_dropbox_jobs_subtask(0) | upload_dropbox_jobs.si() | retry_dropbox_jobs.si()).delay()
-
-
-
-#unused
-@celery.task(base=SqlAlchemyTask)
-def one_task_on_user(user_id):
-    (poll_ivle_modules.s(user_id) | poll_ivle_folders.si(user_id) | queue_user_dropbox_jobs.s(user_id))()
-    return
-
 #priority for new log-ins
 #calls task directly 
 @celery.task(base=SqlAlchemyTask)
@@ -148,13 +103,6 @@ def queue_user_dropbox_jobs(change, user_id):
 
 @celery.task(base=SqlAlchemyTask)
 def one_task_callback():
-    #countdown of 30 seconds between runs
-    one_task_for_them_all.apply_async(countdown=30)
-    return
-
-@celery.task(base=SqlAlchemyTask)
-def one_task_errback():
-    logger.warning('One task errback is called')
     #countdown of 30 seconds between runs
     one_task_for_them_all.apply_async(countdown=30)
     return
