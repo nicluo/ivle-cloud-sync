@@ -11,13 +11,13 @@ CELERYBEAT_SCHEDULE = {
 CELERY_ROUTES = {
     'ivlemods.poll_ivle_folders.poll_ivle_folders': {'queue': 'ivle'},
     'ivlemods.poll_ivle_modules.poll_ivle_modules': {'queue': 'ivle'},
-    'ivlemods.tasks.queue_user_dropbox_jobs' : {'queue': 'dropbox'},
-    'ivlemods.tasks_dropbox.wait_dropbox_job' : {'queue' : 'dropbox'},
-    'ivlemods.tasks_dropbox.upload_dropbox_jobs' : {'queue' : 'dropbox'},
-    'ivlemods.tasks_dropbox.retry_dropbox_jobs' : {'queue' : 'dropbox'},
-    'ivlemods.tasks_dropbox.upload_user_dropbox_jobs' : {'queue' : 'dropbox'},
-    'ivlemods.tasks_dropbox.retry_user_dropbox_jobs' : {'queue' : 'dropbox'},
-    'ivlemods.dist.start' : {'queue' : 'dropbox'},
+    'ivlemods.tasks.queue_user_dropbox_jobs' : {'queue': 'celery'},
+    'ivlemods.tasks_dropbox.wait_dropbox_job' : {'queue' : 'celery'},
+    'ivlemods.tasks_dropbox.upload_dropbox_jobs' : {'queue' : 'celery'},
+    'ivlemods.tasks_dropbox.retry_dropbox_jobs' : {'queue' : 'celery'},
+    'ivlemods.tasks_dropbox.upload_user_dropbox_jobs' : {'queue' : 'celery'},
+    'ivlemods.tasks_dropbox.retry_user_dropbox_jobs' : {'queue' : 'celery'},
+    'ivlemods.tasks_dropbox.file_copier_task' : {'queue' : 'dropbox'},
     'ivlemods.tasks.one_task_on_user_flask' : {'queue' : 'flask'}
 }
 CELERY_RESULT_BACKEND = 'redis://'
