@@ -8,7 +8,7 @@ CELERYD_NODES="celery ivle dropbox flask"
 CELERYD_CHDIR="/home/cloudsync/ivle-cloud-sync/"
 
 # Extra arguments to celeryd
-CELERYD_OPTS="-A ivlemods -Q:ivle ivle -Q:dropbox dropbox -Q:flask flask"
+CELERYD_OPTS="-c 10 -A ivlemods -Q:ivle ivle -Q:dropbox dropbox -Q:flask flask"
 
 # %n will be replaced with the nodename.
 CELERYD_LOG_FILE="/home/cloudsync/ivle-cloud-sync/%n.log"

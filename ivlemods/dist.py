@@ -14,7 +14,7 @@ from ivlemods.database import db_session
 from ivlemods.models import User, Job, OnlineStore, IVLEFile, Cache
 import ivlemods.tasks_dropbox
 from ivlemods.task import SqlAlchemyTask
-from ivlemods.error import DropboxNoCredentials, CacheMutex
+from ivlemods.error import DropboxNoCredentials, CacheMutex, DropboxExceedQuota
 
 from ivlemods.dropbox_session import SessionHandler
 
@@ -31,6 +31,10 @@ def release_lock(lock):
     logger.debug('release lock %s', lock)
     r.set(lock, 'None')
 
+def check_dropbox_quota(user_id):
+    update_dropbox_quota(user_id)
+    user = User.query.get(user_id)
+    return user.dropbox_data_quota - user.dropbox_data_shared - user.dropbox_data_normal
 
 class CacheFetch():
     def __init__(self, job):
@@ -187,6 +191,7 @@ class FileCopier():
                 self.job.status_started = datetime.now()
             else:
                 self.job.status_update = datetime.now()
+                self.job.status_retry = datetime.now()
                 self.job.status_retries += 1
             db_session.commit()
 
@@ -235,6 +240,11 @@ class FileCopier():
             logger.info('Lock conflict: lock - %s, message - %s', e.lock, e.value)
             ivlemods.tasks_dropbox.wait_dropbox_job.delay(self.job_id, 20)
             return
+        except DropboxExceedQuota, e:
+            logger.info('User has exceeded Dropbox quota. File: %s, Quota: %s', e.file_size, e.quota)
+            self.job.status = 12
+            self.job.status_update = datetime.now()
+            return
         except Exception, e:
             logger.critical("dist failed")
             logger.critical(e.args)
@@ -273,6 +283,9 @@ class FileCopier():
         try_lock('chunk', 'Copy - Chunk upload lock failed')
         try:
             file_size = os.stat('cache/' + self.job.file_id).st_size
+            free_space = check_dropbox_quota(self.job.user_id)
+            if file_size > free_space:
+                raise DropboxExceedQuota(file_size, free_space)    
             f = open('cache/' + self.job.file_id, 'rb')
             uploader = self.cli.get_chunked_uploader(f, file_size)
             while uploader.offset < file_size:
