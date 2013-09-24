@@ -32,7 +32,7 @@ def release_lock(lock):
     r.set(lock, 'None')
 
 def check_dropbox_quota(user_id):
-    ivlemods.tasks_dropbox.update_dropbox_quota(user_id)
+    ivlemods.tasks_dropbox.update_user_dropbox_quota(user_id)
     user = User.query.get(user_id)
     return user.dropbox_data_quota - user.dropbox_data_shared - user.dropbox_data_normal
 
