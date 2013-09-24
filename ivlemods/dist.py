@@ -36,6 +36,13 @@ def check_dropbox_quota(user_id):
     user = User.query.get(user_id)
     return user.dropbox_data_quota - user.dropbox_data_shared - user.dropbox_data_normal
 
+def get_file_size(path):
+    if os.path.exists(path):
+        file_size = os.stat(path).st_size
+    else:
+        file_size = 0
+    return file_size
+
 class CacheFetch():
     def __init__(self, job):
         self.job = job
@@ -65,7 +72,8 @@ class CacheFetch():
         new_cache = Cache({'file_id':self.job.file_id,
                            'http_url':self.job.http_url,
                            'method':self.job.method,
-                           'download_user_id':self.job.user_id})
+                           'download_user_id':self.job.user_id,
+                           'file_size': get_file_size('cache/' + self.job.file_id)})
         db_session.add(new_cache)
         db_session.commit()
 

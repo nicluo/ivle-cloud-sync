@@ -3,7 +3,7 @@ import logging
 
 from celery import group
 import ivlemods.dist as dist
-from ivlemods.models import Job, User
+from ivlemods.models import Job, User, Cache
 
 from ivlemods.celery import celery
 from ivlemods.database import db_session
@@ -74,3 +74,10 @@ def update_user_dropbox_quota(user_id):
 def file_copier_task(job_id):
     fc = dist.FileCopier(job_id)
     fc.start()
+
+@celery.task(base=SqlAlchemyTask)
+#discretionary task to update file sizes
+def update_all_file_sizes():
+    for entry in Cache.query.filter(Cache.file_size == None).all():
+        entry.file_size = dist.get_file_size('cache/'+entry.file_id)
+    db_session.commit()
