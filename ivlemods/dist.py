@@ -16,20 +16,12 @@ import ivlemods.tasks_dropbox
 from ivlemods.task import SqlAlchemyTask
 from ivlemods.error import DropboxNoCredentials, CacheMutex, DropboxExceedQuota
 
+from ivlemods.lock import try_lock, release_lock
 from ivlemods.dropbox_session import SessionHandler
 
 logger = logging.getLogger(__name__)
-r = redis.StrictRedis(host='localhost', port=6379, db=0)
 
-def try_lock(lock, fail_message):
-    logger.debug('trying for lock %s', lock)
-    mutex_is_locked = r.getset(lock, '1') == '1'
-    if mutex_is_locked:
-        raise CacheMutex(lock, fail_message) 
 
-def release_lock(lock):
-    logger.debug('release lock %s', lock)
-    r.set(lock, 'None')
 
 def check_dropbox_quota(user_id):
     ivlemods.tasks_dropbox.update_user_dropbox_quota(user_id)
@@ -97,6 +89,12 @@ class CacheFetch():
         d = os.path.dirname(f)
         if not os.path.exists(d):
             os.makedirs(d)
+
+    def check_if_complete(self, path):
+        if os.path.exists(path) and os.stat(path).st_size > 0:
+            return True
+        return False
+
 
     def delete_if_exists(self, path):
         if os.path.exists(path):
