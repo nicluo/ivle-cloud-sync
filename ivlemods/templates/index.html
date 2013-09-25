@@ -6,6 +6,7 @@
 </div>
 
 <div data-role="content">
+  <img class="img-standard" src="{{url_for('static', filename='logo.png' )}}" alt="rename the Cloud Sync app folder">
   <h1 class="left">All your files at the right place, all the time.</h1>
   <p class="left">IVLE Cloud Sync <strong>simplifies workbin management</strong> by pushing new files to your Dropbox and giving you automatic updates as they happen.</p>
   <hr class="clear">
@@ -18,10 +19,14 @@
     </a>
   </p>
   <p>
-  See what Cloudsync has to offer.<br>
+  Unsure about what it takes? read more about Cloud Sync in our FAQ.<br>
+    <a data-ajax="false" data-inline="true" data-role="button"
+       href="{{ url_for('faq') }}">
+      FAQ
+    </a>
     <a data-ajax="false" data-inline="true" data-role="button"
        href="{{ url_for('quickstart') }}">
-      Take the Tour
+      Quick Start Guide
     </a>
   </p>
 </div>
