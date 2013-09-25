@@ -36,7 +36,10 @@ def retry_dropbox_jobs():
 def upload_dropbox_job_by_list(job_ids, callback=None):
     logger.debug('Uploading dropbox job by list, %s', job_ids)
     #set job statuses to 1
-    db_session.query(Job).filter(Job.job_id in job_ids).update({'status': 1, 'status_update':datetime.now()})
+    for job_id in job_ids:
+        job  = Job.query.get(job_id)
+        job.status = 1
+        job.status_update = datetime.now()
     db_session.commit()
     #create a group with the list of jobs
     jobs = group(file_copier_task.si(job_id) for job_id in job_ids)
