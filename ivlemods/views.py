@@ -66,6 +66,11 @@ def ivle_callback():
         return redirect(url_for('associate'))
 
 
+@app.route('/faq')
+def faq():
+    analytics.track('anonymous_user', 'load faq');
+    return render_template('faq.html')
+
 @app.route('/nextsteps')
 def nextsteps():
     analytics.track('anonymous_user', 'load next steps');

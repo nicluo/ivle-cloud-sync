@@ -1,0 +1,54 @@
+{% extends "layout.html" %}
+{% block title %}IVLE Cloud Sync{% endblock %}
+{% block body %}
+<div data-role="header">
+  <h1>IVLE Cloud Sync</h1>
+</div>
+
+<div data-role="content">
+  <h1 class="left">Frequently Asked Questions</h1>
+  <p class="left"></p>
+  <hr> 
+  <h3 class="left"> Index</h3>
+  <ol>
+    <li class='left'>What is Cloud Sync?</li>
+    <li class="left">What do I have to do to use Cloud Sync?</li>
+    <li class="left">Do I have to download any application or programs? Is this available on my desktop computer, laptop, tablet or mobile phone?</li>
+    <li class="left">Why Dropbox?</li>
+    <li class="left">Where will my files be uploaded to?</li>
+    <li class="left">I want to use Cloud Sync in a different way. How do I request for features?</li>
+    <li class="left">Who are the developers behind Cloud Sync?</li>
+  </ol>
+
+  <h4 class="left">1 What is Cloud Sync?</h4>
+  <p class="left">Cloud Sync is a web service built for IVLE users. Our servers crawl ivle for new, updated files and delivers them directly to your dropbox account in real time.</p>
+
+  <h4 class="left">2 What do I have to do to use Cloud Sync?</h4>
+  <p class="left">All you need to do is sign in once here: ___ to connect your account to Cloud Sync. The quickstart guide will show you how.</p>
+
+  <h4 class="left">3 Do I have to download any application or programs? Is this available on my desktop computer, laptop, tablet or mobile phone?</h4>
+  <p class="left">You only need to download the Dropbox application on your devices to access all your files.</p>
+
+  <h4 class="left">4 Why Dropbox?</h4>
+  <p class="left">It’s free, easy to use and everyone in NUS has it (see winners of Dropbox Space Race).</p>
+  <p class="left">Don’t have an account? Click here to sign up.</p>
+
+  <h4 class="left">5 Where will my files be uploaded to?</h4>
+  <p class="left">The default folder would be Dropbox > Apps > IVLE Cloud Sync. Follow the next steps guide on how you can customise your folders.</p>
+
+  <h4 class="left">5 I want to use Cloud Sync in a different way. How do I request for features?</h4>
+  <p class="left">You can send your feedback to ivlecloudsync@gmail.com :)</p>
+
+  <h4 class="left">6 Who are the developers behind Cloud Sync?</h4>
+  <p class="left">Nicholas Luo &amp; Eu Beng Hee (developer of NUSMods.com). If you see us around do say hi to us! :)</p>
+
+  <p>
+    <a data-ajax="false" data-inline="true" data-role="button"
+       href="{{ url_for('ivle_login') }}"
+       data-theme="b">
+      Login with IVLE
+    </a>
+  </p>
+</div>
+
+{% endblock %}
