@@ -25,12 +25,27 @@ def wait_dropbox_job(job_id, time = 20):
 @celery.task(base=SqlAlchemyTask)
 def upload_dropbox_jobs():
     logger.info("Queueing file transfers for all users")
-    upload_user_dropbox_jobs.map([id for id, in User.query.values(User.user_id)]).delay()
+    group(upload_user_dropbox_jobs.s(id) for id in [id for id, in User.query.values(User.user_id)])()
 
 @celery.task(base=SqlAlchemyTask)
 def retry_dropbox_jobs():
     logger.info("Retrying file transfers for all users")
-    retry_user_dropbox_jobs.map([id for id, in User.query.values(User.user_id)]).delay()
+    group(retry_user_dropbox_jobs.s(id) for id in [id for id, in User.query.values(User.user_id)])()
+
+@celery.task(base=SqlAlchemyTask)
+def upload_dropbox_job_by_list(job_ids, callback=None):
+    logger.debug('Uploading dropbox job by list, %s', job_ids)
+    #set job statuses to 1
+    db_session.query(Job).filter(Job.job_id in job_ids).update({'status': 1, 'status_update':datetime.now()})
+    db_session.commit()
+    #create a group with the list of jobs
+    jobs = group(file_copier_task.si(job_id) for job_id in job_ids)
+    #chain with callback and delay
+    if callback:
+        (jobs | callback)()
+    else:
+        jobs()
+        
 
 @celery.task(base=SqlAlchemyTask)
 def upload_user_dropbox_jobs(user_id):

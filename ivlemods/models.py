@@ -178,12 +178,13 @@ class Job(Base):
                          remote_side = [Cache.file_id],
                          backref = backref('jobs', lazy='dynamic'))
 
-    def __init__(self, file_id, http_url, method, user_id, target_path):
+    def __init__(self, file_id, http_url, method, user_id, target_path, status=0):
         self.file_id = file_id
         self.http_url = http_url
         self.method = method
         self.user_id = user_id
         self.target_path = target_path
+        self.status = status
 
 
 
