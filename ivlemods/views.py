@@ -53,6 +53,8 @@ def ivle_callback():
         user.ivle_token = ivle_token
         db_session.commit()
         session['user_id'] = user.user_id
+        if user.dropbox_key == None:
+            return redirect(url_for('associate'))
         return redirect(url_for('settings'))
     else:
         ivle_email = client.get('UserEmail_Get')
