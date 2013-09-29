@@ -65,7 +65,7 @@ def retry_user_dropbox_jobs(user_id):
     for entry in Job.query.filter(Job.status == 11, Job.status_retries < max_retries, Job.user_id == user_id).all():
         #update time of update, increment retries, set status 1 so it doesn't get queued again
         entry.status_update = datetime.now()
-        entry.job.status_retries += 1
+        entry.status_retries += 1
         entry.status = 1
         db_session.commit()
         file_copier_task.delay(entry.job_id)
