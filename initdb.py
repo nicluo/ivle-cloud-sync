@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from ivlemods.database import db_session, init_db
 from redis import StrictRedis
 
