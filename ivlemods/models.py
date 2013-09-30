@@ -15,6 +15,7 @@ class User(Base):
     ivle_email = Column(String(32))
     ivle_name = Column(String(64))
     ivle_token = Column(String(416))
+    ivle_valid_till = Column(DateTime)
     dropbox_uid = Column(Integer)
     dropbox_key = Column(String(16))
     dropbox_secret = Column(String(15))
@@ -32,6 +33,7 @@ class User(Base):
         self.ivle_email = ivle_email
         self.ivle_name = ivle_name
         self.ivle_token = ivle_token
+        self.ivle_valid_till = datetime.now()
         self.dropbox_key = dropbox_key
         self.dropbox_secret = dropbox_secret
         self.dropbox_data_quota = quota_info['quota'] 
