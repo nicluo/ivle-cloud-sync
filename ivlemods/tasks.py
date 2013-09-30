@@ -29,8 +29,9 @@ def ivle_workbin_to_dropbox_job(user_id, duration=0, status=0):
         db_session.commit()
 
         client = IvleClient(user.ivle_token)
-        new_files = user.ivle_files.filter(IVLEFile.parent_folder.has(sync = True))\
-                                   .filter(~IVLEFile.jobs.any()).all()
+        new_files = user.ivle_files.filter(IVLEFile.parent_folder.has(sync = True),
+                                           ~IVLEFile.jobs.any(),
+                                           ~IVLEFile.is_deleted).all()
 
         for file in new_files:
             db_session.add(Job(file.ivle_id,\
