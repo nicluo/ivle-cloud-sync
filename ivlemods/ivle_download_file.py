@@ -72,6 +72,7 @@ def ivle_download_file(job_id):
                     #create cache entry
                     create_cache_entry(job)
                     validate_cache_entry(job.cache)
+                    release_lock(job.file_id)
                 else:
                     logger.debug('file %s has cache entry already. Continue.', job.file_id)
                     release_lock(job.file_id)
