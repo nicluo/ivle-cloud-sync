@@ -21,22 +21,32 @@
   clear: both;
 }
 
-.ui-checkbox .ui-btn-text:before {
-  content: "\f115";
+@font-face {
+    font-family: 'FontAwesome';
+    src: url('font/fontawesome-webfont.eot');
+    src: url('font/fontawesome-webfont.eot?#iefix') format('embedded-opentype'),
+    url('font/fontawesome-webfont.woff') format('woff'),
+    url('font/fontawesome-webfont.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+.ui-checkbox label:before {
+  content: "\f021";
   font-family: FontAwesome;
   font-weight: normal;
 }
 
-.ui-btn[data-nest="1"] .ui-btn-text {
-  margin-left: 16px;
+.ui-btn[data-nest="1"] {
+  text-indent: 16px;
 }
 
-.ui-btn[data-nest="2"] .ui-btn-text {
-  margin-left: 32px;
+.ui-btn[data-nest="2"] {
+  text-indent: 32px;
 }
 
-.ui-btn[data-nest="3"] .ui-btn-text {
-  margin-left: 48px;
+.ui-btn[data-nest="3"] {
+  text-indent: 48px;
 }
 
 .img-standard {
