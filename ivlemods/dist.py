@@ -18,9 +18,9 @@ from ivlemods.error import DropboxNoCredentials, CacheMutex, DropboxExceedQuota
 
 from ivlemods.lock import try_lock, release_lock
 from ivlemods.dropbox_session import SessionHandler
+from ivlemods.ivle_download_file import ivle_download_file, ivle_check_file_downloaded, NoLocalCopy
 
 logger = logging.getLogger(__name__)
-
 
 
 def check_dropbox_quota(user_id):
@@ -34,81 +34,6 @@ def get_file_size(path):
     else:
         file_size = 0
     return file_size
-
-class CacheFetch():
-    def __init__(self, job):
-        self.job = job
-        if not self.job.cache == None:
-            return
-        else:
-            #check entry, check mutex and wait
-            if self.job.cache == None:
-                try_lock(self.job.file_id, "FileCopier - File not cached, some other job is downloading, wait.")
-                #mutex is yours
-                try:
-                    #check again that there is no entry
-                    if self.job.cache == None:
-                        #go ahead and download
-                        if self.job.method == 'http':
-                            self.download_from_http()
-                        #create cache entry
-                        self.create_cache_entry()
-                except:
-                    release_lock(self.job.file_id)
-                    raise
-                else:
-                    release_lock(self.job.file_id)
-                    return
-
-    def create_cache_entry(self):
-        new_cache = Cache({'file_id':self.job.file_id,
-                           'http_url':self.job.http_url,
-                           'method':self.job.method,
-                           'download_user_id':self.job.user_id,
-                           'file_size': get_file_size('cache/' + self.job.file_id)})
-        db_session.add(new_cache)
-        db_session.commit()
-
-    def download_from_http(self):
-        download = requests.get(self.job.http_url)
-        download.raise_for_status()
-        logger.debug(download.headers)
-
-        #ensure proper, empty temp file for the cache to use
-        cache_path = 'cache/tmp'
-        self.ensure_directory(cache_path)
-        cache_path = self.find_unused(cache_path)
-        out = open(cache_path, 'wb')
-        out.write(download.content)
-        out.close()
-        logger.debug(self.job.target_path + " downloaded to " + cache_path + ".")
-        self.delete_if_exists('cache/' + self.job.file_id)
-        os.renames(cache_path, 'cache/' + self.job.file_id)
-
-    def ensure_directory(self, f):
-        d = os.path.dirname(f)
-        if not os.path.exists(d):
-            os.makedirs(d)
-
-    def check_if_complete(self, path):
-        if os.path.exists(path) and os.stat(path).st_size > 0:
-            return True
-        return False
-
-
-    def delete_if_exists(self, path):
-        if os.path.exists(path):
-            os.remove(path)
-            logger.debug("Cache - have to delete existing file.")
-        return
-
-    def find_unused(self, original_path):
-        check_path = original_path
-        conflict_num = 0
-        while(os.path.exists(check_path)):
-            title, ext = os.path.splitext(original_path)
-            check_path = title + str(conflict_num) + ext
-        return check_path
 
 class FileProcessOverwrite():
     def __init__(self, user_id, check_path):
@@ -189,7 +114,12 @@ class FileCopier():
                 return
 
             #check that the cache entry exists before formally starting
-            CacheFetch(self.job)
+            try:
+                ivle_check_file_downloaded(self.job_id)
+            except NoLocalCopy, e:
+                logger.info('Job has no local cached copy. Job: %s', e.job_id)
+                ivlemods.tasks_dropbox.wait_dropbox_job.delay(self.job.job_id, 20)
+                return
 
             #mark that we have started the job, and increment retries
             logger.info("FileCopier - Starting job id(%s) file id(%s) for User %s", self.job.job_id, self.job.file_id, self.job.user_id)

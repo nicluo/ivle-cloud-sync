@@ -145,6 +145,7 @@ class Cache(Base):
         self.method = meta['method']
         self.download_user_id = meta['download_user_id']
         self.file_size = meta['file_size']
+        self.path = meta['path']
 
 class Job(Base):
     __tablename__ = 'dropbox_jobs'
