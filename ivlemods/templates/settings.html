@@ -6,16 +6,30 @@
 </div>
 
 <div class="center" data-role="content">
-  <a href="https://www.dropbox.com/"><img src="{{ url_for('static', filename='img/pe-web.png') }}"></a><br>
-  {% if not user.dropbox_key %}
-  Connect with Dropbox to sync your Workbin files.<br>
-  <a data-inline="true" data-role="button" rel="external"
-     href="{{ url_for('dropbox_login') }}">Connect with Dropbox</a>
-  {% else %}
-  You are connected with Dropbox. Your Workbin files will be synced.<br>
-  <a data-inline="true" data-role="button"
-     href="{{ url_for('dropbox_logout') }}">Disconnect from Dropbox</a>
-  {% endif %}
+	<div style="text-align:left">
+	<h4>A Note to New Users: </h4>
+	<p>If this is your first time synchronising your Dropbox account, 
+	please wait a few moments for us to upload all your existing files.</p>
+	<p>This is the settings page. If you see this, then <strong><em>congratulations</em></strong>!
+	All your files will be sent to you as soon as we get it.</p>
+	<p><u>Most users would never have to change the settings.</u> Otherwise,
+	only uncheck the folders you do not wish to have synchronised.</p>
+	</div>
+  <div data-role="collapsible" data-theme="a" data-content-theme="a">
+    {% if not user.dropbox_key %}
+    <h3>Dropbox Integration - <span style="color:#F00;">Dropbox Account Not Linked</span></h3>
+    <a href="https://www.dropbox.com/"><img src="{{ url_for('static', filename='img/pe-web.png') }}"></a><br>
+    Connect with Dropbox to sync your Workbin files.<br>
+    <a data-inline="true" data-role="button" rel="external"
+       href="{{ url_for('dropbox_login') }}">Connect with Dropbox</a>
+    {% else %}
+    <h3>Dropbox Integration - <span style="color:#0F0;">Dropbox Account Linked</span></h3>
+    <a href="https://www.dropbox.com/"><img src="{{ url_for('static', filename='img/pe-web.png') }}"></a><br>
+    You are connected with Dropbox. Your Workbin files will be synced.<br>
+    <a data-inline="true" data-role="button"
+       href="{{ url_for('dropbox_logout') }}">Disconnect from Dropbox</a>
+  	{% endif %}
+	</div>
   <br><br>
   {% if modules.values() %}
     <h2>Folders to Sync</h2>
