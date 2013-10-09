@@ -20,8 +20,10 @@
   </script>
 </head>
 <body>
-
 <div data-role="page" class="center">
+  <div data-role="header">
+    <h1>{% block heading %}{% endblock %}</h1>
+  </div>
   {% block body %}{% endblock %}
 </div>
 
