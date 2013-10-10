@@ -22,7 +22,19 @@
 <body>
 <div data-role="page" class="center">
   <div data-role="header">
+  <a href="/" data-icon="home" data-role="button" data-iconpos="notext">
+    Home
+  </a>
     <h1>{% block heading %}{% endblock %}</h1>
+    {% if session.user_id %}
+    <a href="/settings" data-icon="gear" data-role="button">
+      Settings
+    </a>
+    {% else %}
+    <a href="/login" data-icon="star" data-role="button">
+      Login
+    </a>
+    {% endif %}
   </div>
   {% block body %}{% endblock %}
 </div>
