@@ -13,7 +13,7 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-@celery.task
+@celery.task(base=SqlAlchemyTask)
 def wait_dropbox_job(job_id, time = 20):
     #time is in seconds
     entry = Job.query.filter_by(job_id = job_id).one()
