@@ -1,5 +1,4 @@
 from __future__ import absolute_import
-from celery.task import task
 from celery.task import Task
 
 from ivlemods.database import db_session
