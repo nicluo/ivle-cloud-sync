@@ -7,9 +7,11 @@ from ivlemods import app
 LAPI_URL = 'https://ivle.nus.edu.sg/api/Lapi.svc/'
 
 class IvleClient:
+
     def __init__(self, auth_token):
         self.api_key = app.config['IVLE_LAPI_KEY']
         self.auth_token = auth_token
+        self.connection_tries = 0
 
     def build_params(self, params):
         token_key = 'AuthToken' if len(params) else 'Token'
@@ -18,11 +20,11 @@ class IvleClient:
         return params
 
     def get(self, method, **params):
-        for i in range(3):
+        for self.connection_tries in range(1, 4):
             try:
-                return get(LAPI_URL + method, params=self.build_params(params)).json()
+                return get(LAPI_URL + method, params=self.build_params(params), timeout=30).json()
             except ConnectionError:
-                if i == 2:
+                if self.connection_tries == 3:
                     raise
 
     def build_download_url(self, id):
