@@ -98,7 +98,7 @@ class IVLEFile(Base):
     upload_time = Column(DateTime)
     dropbox_queued = Column(DateTime)
     dropbox_uploaded_date = Column(DateTime)
-    dropbox_rev= Column(String(11))
+    dropbox_rev= Column(String(15))
     is_deleted = Column(Boolean)
     checked = Column(DateTime)
 
