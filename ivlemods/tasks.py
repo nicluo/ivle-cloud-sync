@@ -92,8 +92,11 @@ def dropbox_login_resume_jobs(user_id):
 def one_task_on_user_flask(user_id):
     poll_ivle_modules(user_id)
     poll_ivle_folders(user_id)
+    #revert to single execution path (remove token)
+    queue_user_dropbox_jobs_flask(user_id)
+
     #token pass is invoked with call_no 0 to start a new token
-    (queue_user_dropbox_jobs_flask.si(user_id) | token_pass_run_dropbox_jobs_flask.si(user_id, 0))()
+    #(queue_user_dropbox_jobs_flask.si(user_id) | token_pass_run_dropbox_jobs_flask.si(user_id, 0))()
     return
 
 @celery.task(base=SqlAlchemyTask)
@@ -109,7 +112,9 @@ def queue_user_dropbox_jobs(change, user_id):
 
 @celery.task(base=SqlAlchemyTask)
 def queue_user_dropbox_jobs_flask(user_id):
-    ivle_workbin_to_dropbox_job(user_id, 0, 5) 
+    #revert to single execution path
+    (ivle_workbin_to_dropbox_job.s(user_id) | upload_user_dropbox_jobs.si(user_id))()
+    #ivle_workbin_to_dropbox_job(user_id, 0, 5) 
     return
 
 @celery.task(base=SqlAlchemyTask)

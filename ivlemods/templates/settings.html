@@ -14,7 +14,7 @@
 	only uncheck the folders you do not wish to have synchronised.</p>
 	</div>
   <div data-role="collapsible" data-theme="a" data-content-theme="a">
-    {% if not user.dropbox_key %}
+    {% if not user.dropbox_valid %}
     <h3>Dropbox Integration - <span style="color:#F00;">Dropbox Account Not Linked</span></h3>
     <a href="https://www.dropbox.com/"><img src="{{ url_for('static', filename='img/pe-web.png') }}"></a><br>
     Connect with Dropbox to sync your Workbin files.<br>

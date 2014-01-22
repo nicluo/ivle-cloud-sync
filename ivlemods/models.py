@@ -19,6 +19,7 @@ class User(Base):
     dropbox_uid = Column(Integer)
     dropbox_key = Column(String(16))
     dropbox_secret = Column(String(15))
+    dropbox_valid = Column(Boolean, default=False)
     dropbox_data_quota = Column(BigInteger)
     dropbox_data_normal = Column(BigInteger)
     dropbox_data_shared = Column(BigInteger)
@@ -27,13 +28,14 @@ class User(Base):
     workbin_checked = Column(DateTime)
 
     def __init__(self, ivle_uid, ivle_email, ivle_name, ivle_token,
-            dropbox_key=None, dropbox_secret=None, 
-	    quota_info={'shared': None, 'quota':None, 'normal':None, 'datastores':None}):
+            dropbox_valid=False, dropbox_key=None, dropbox_secret=None, 
+	        quota_info={'shared': None, 'quota':None, 'normal':None, 'datastores':None}):
         self.ivle_uid = ivle_uid
         self.ivle_email = ivle_email
         self.ivle_name = ivle_name
         self.ivle_token = ivle_token
         self.ivle_valid_till = datetime.now()
+        self.dropbox_valid = dropbox_valid
         self.dropbox_key = dropbox_key
         self.dropbox_secret = dropbox_secret
         self.dropbox_data_quota = quota_info['quota'] 

@@ -53,7 +53,7 @@ def ivle_callback():
         user.ivle_token = ivle_token
         db_session.commit()
         session['user_id'] = user.user_id
-        if user.dropbox_key == None:
+        if user.dropbox_valid == False:
             return redirect(url_for('associate'))
         return redirect(url_for('settings'))
     else:
@@ -156,6 +156,7 @@ def dropbox_callback():
     dropbox_session.set_request_token(session['dropbox_request_token_key'],
         session['dropbox_request_token_secret'])
     access_token = dropbox_session.obtain_access_token()
+    g.user.dropbox_valid = True
     g.user.dropbox_key = access_token.key
     g.user.dropbox_secret = access_token.secret
     db_session.commit()
@@ -168,8 +169,7 @@ def dropbox_callback():
 @app.route('/auth/dropbox/logout')
 @login_required
 def dropbox_logout():
-    g.user.dropbox_key = None
-    g.user.dropbox_secret = None
+    g.user.dropbox_valid = False
     db_session.commit()
     return redirect(url_for('settings'))
 
