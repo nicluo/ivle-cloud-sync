@@ -201,7 +201,7 @@ class OnlineStore(Base):
     source_file_path = Column(String(200))
     source_uploaded_path = Column(String(200))
     source_user_id = Column(Integer, ForeignKey('users.user_id'))
-    source_file_rev= Column(String(11))
+    source_file_rev= Column(String(15))
     is_valid = Column(Boolean, server_default =text('0'), default=True)
     date_added = Column(DateTime, default = datetime.now)
 
