@@ -81,6 +81,7 @@ def update_user_dropbox_quota(user_id):
     sh = SessionHandler(user_id)
     info = sh.ignore_timeout(sh.client.account_info)()
     user = User.query.get(user_id)
+    user.dropbox_uid = info['uid']
     user.dropbox_data_quota = info['quota_info']['quota']
     user.dropbox_data_normal = info['quota_info']['normal']
     user.dropbox_data_shared = info['quota_info']['shared']
