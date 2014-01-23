@@ -1,0 +1,25 @@
+{% extends "layout.html" %}
+{% block title %}Status - IVLE Cloud Sync{% endblock %}
+{% block heading %}Status{% endblock %}
+{% block body %}
+
+<div class="center" data-role="content">
+	<div style="text-align:left">
+    <h1>IVLE Cloud Sync Status</h1>
+    The status of IVLE Cloud Sync is 
+    {% if jobs == 0 %} 
+      <span style="color:#00F">IDLE</span>.
+    {% elif jobs > 0 and jobs < 50 %} 
+      <span style="color:#0F0">LOW</span>.
+    {% elif jobs >= 50 and jobs < 300 %} 
+      <span style="color:#FFCD06">MEDIUM</span>.
+    {% elif jobs >= 300 and jobs < 1000 %} 
+      <span style="color:#F00">HIGH</span>.
+    {% elif jobs >= 1000 %} 
+      <span style="color:#F00">VERY HIGH</span>.
+    {% endif %}
+
+	</div>
+</div>
+
+{% endblock %}

@@ -10,6 +10,7 @@ from ivlemods.database import db_session
 from ivlemods.poll_ivle_folders import poll_ivle_folders
 from ivlemods.poll_ivle_modules import poll_ivle_modules
 from ivlemods.tasks import one_task_on_user_flask
+from ivlemods.tasks_dropbox import count_dropbox_jobs
 from ivlemods.models import IVLEFolder, User
 
 import analytics
@@ -82,6 +83,11 @@ def nextsteps():
 def quickstart():
     analytics.track('anonymous_user', 'load quickstart');
     return render_template('quickstart.html')
+
+@app.route('/status')
+def status():
+    analytics.track('anonymous_user', 'load status');
+    return render_template('status.html', jobs=count_dropbox_jobs())
 
 @app.route('/associate')
 @login_required

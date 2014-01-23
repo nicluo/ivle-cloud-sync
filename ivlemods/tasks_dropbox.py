@@ -75,6 +75,13 @@ def update_dropbox_quotas():
     logger.info("Updating dropbox quotas for all users")
     group(update_user_dropbox_quota.s(user_id) for user_id in [id for id, in User.query.filter(User.dropbox_key != None).values(User.user_id)]).delay()
 
+
+@celery.task(base=SqlAlchemyTask)
+def count_dropbox_jobs():
+    logger.info('counting pending dropbox jobs')
+    count = Job.query.filter_by(status = 1).count()
+    return count
+
 @celery.task(base=SqlAlchemyTask)
 def update_user_dropbox_quota(user_id):
     logger.info('Updating dropbox quota info for user %s', user_id)
