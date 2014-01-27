@@ -38,7 +38,7 @@ def index():
     return render_template('index.html')
 
 
-@app.rout('/login')
+@app.route('/login')
 def login():
     return redirect(url_for('ivle_login'))
 
