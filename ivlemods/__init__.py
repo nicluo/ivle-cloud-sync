@@ -27,7 +27,7 @@ Message:
 
 %(message)s
 '''))
-mail_handler.setLevel(logging.ERROR)
+mail_handler.setLevel(logging.CRITICAL)
 
 loggers = [app.logger, logging.getLogger('ivlemods')]
 for logger in loggers:
