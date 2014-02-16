@@ -1,10 +1,15 @@
+import logging
+
 from requests import get
-from requests.exceptions import ConnectionError
+from requests.exceptions import ConnectionError, HTTPError, Timeout
 from urllib import urlencode
 
 from ivlemods import app
 
 LAPI_URL = 'https://ivle.nus.edu.sg/api/Lapi.svc/'
+
+logger = logging.getLogger(__name__)
+
 
 class IvleClient:
 
@@ -20,11 +25,27 @@ class IvleClient:
         return params
 
     def get(self, method, **params):
-        for self.connection_tries in range(1, 4):
+        max_tries = 3
+        for self.connection_tries in range(0, max_tries):
             try:
-                return get(LAPI_URL + method, params=self.build_params(params), timeout=30).json()
-            except ConnectionError:
-                if self.connection_tries == 3:
+                logger.info('Request #%d, %r, for %r' % (self.connection_tries, method, self.auth_token))
+                response = get(LAPI_URL + method, params=self.build_params(params), timeout=10).json()
+                logger.info('RequestSuccess %d, %r, for %r' % (self.connection_tries, method, self.auth_token))
+                return response
+            except ConnectionError, e:
+                logger.debug(e)
+                logger.info('ConnectionError %d, for %r' % (self.connection_tries, self.auth_token))
+                if self.connection_tries == max_tries - 1:
+                    raise
+            except HTTPError, e:
+                logger.debug(e)
+                logger.info('HTTPError %d, for %r' % (self.connection_tries, self.auth_token))
+                if self.connection_tries == max_tries - 1:
+                    raise
+            except Timeout, e:
+                logger.debug(e)
+                logger.info('TimeoutError %d, for %r' % (self.connection_tries, self.auth_token))
+                if self.connection_tries == max_tries - 1:
                     raise
 
     def build_download_url(self, id):
