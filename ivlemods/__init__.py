@@ -35,4 +35,7 @@ for logger in loggers:
     if not app.debug:
         logger.addHandler(mail_handler)
 
+if app.debug:
+    logging.basicConfig(level=logging.DEBUG)
+
 import ivlemods.views
