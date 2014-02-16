@@ -44,6 +44,9 @@ class User(Base):
         self.dropbox_data_datastores = quota_info['datastores']
         self.workbin_checked = datetime.now()
 
+    def __repr__(self):
+        return '<User %d %r>' % (self.user_id, self.ivle_name)
+
 
 class IVLEFolder(Base):
     __tablename__ = 'ivle_folder'
@@ -81,6 +84,9 @@ class IVLEFolder(Base):
         self.is_deleted = False
         self.checked = datetime.now()
         self.sync = True
+
+    def __repr__(self):
+        return '<Folder %d %r owned by %s >' % (self.folder_id, self.path, self.user_id)
 
 
 class IVLEFile(Base):
@@ -123,6 +129,9 @@ class IVLEFile(Base):
         self.upload_time = meta['upload_time']
         self.file_type = meta['file_type']
 
+    def __repr__(self):
+        return '<File %d %r owned by %s >' % (self.file_id, self.file_name, self.user_id)
+
 class Cache(Base):
     __tablename__ = 'file_cache'
 
@@ -150,6 +159,9 @@ class Cache(Base):
         self.download_user_id = meta['download_user_id']
         self.file_size = meta['file_size']
         self.path = meta['path']
+
+    def __repr__(self):
+        return '<FileCache %d for %r owned by %s >' % (self.cache_id, self.file_id, self.download_user_id)
 
 class Job(Base):
     __tablename__ = 'dropbox_jobs'
@@ -192,6 +204,8 @@ class Job(Base):
         self.status = status
 
 
+    def __repr__(self):
+        return '<Job %d %r %r owned by %s status %d>' % (self.job_id, self.file_id, self.target_path, self.user_id, self.status)
 
 class OnlineStore(Base):
     __tablename__ = 'dropbox_store'
@@ -217,6 +231,8 @@ class OnlineStore(Base):
         self.source_user_id = job.user_id
         self.source_file_rev= uploaded_file_metadata["rev"]
 
+    def __repr__(self):
+        return '<OnlineStore %d %r %r owned by %s validity %d>' % (self.store_id , self.file_id, self.source_uploaded_path , self.source_user_id, self.is_valid)
 
 class IVLEModule(Base):
     __tablename__ = 'ivle_module'
