@@ -107,7 +107,7 @@ def one_task_for_them_all():
 @celery.task(base=SqlAlchemyTask)
 def queue_user_dropbox_jobs(change, user_id):
     (ivle_workbin_to_dropbox_job.s(user_id) | upload_user_dropbox_jobs.si(user_id))()
-    retry_user_dropbox_jobs.si(user_id)()
+    retry_user_dropbox_jobs.apply_async((user_id,))
     return
 
 @celery.task(base=SqlAlchemyTask)
