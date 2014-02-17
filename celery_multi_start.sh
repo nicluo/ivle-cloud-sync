@@ -1,2 +1,2 @@
 #!/bin/bash
-celery multi start 4 -A ivlemods -l debug -Q:2 ivle -Q:3 dropbox -Q:4 flask
+celery multi start celery ivle dropbox flask --app=ivlemods.celery --loglevel=DEBUG -Q:ivle ivle -Q:dropbox dropbox -Q:flask flask -Q: default
