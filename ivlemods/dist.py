@@ -119,7 +119,7 @@ class FileCopier():
                 ivle_check_file_downloaded(self.job_id)
             except NoLocalCopy, e:
                 logger.info('Job has no local cached copy. Job: %s', e.job_id)
-                ivlemods.tasks_dropbox.wait_dropbox_job.delay(self.job.job_id, 20)
+                ivlemods.tasks_dropbox.wait_dropbox_job.delay(self.job.job_id, self.wait_interval)
                 return
 
             #mark that we have started the job, and increment retries

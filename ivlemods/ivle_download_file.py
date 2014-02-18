@@ -48,7 +48,7 @@ def ivle_check_file_downloaded(job_id):
     return
 
 @celery.task(base=SqlAlchemyTask)
-def ivle_download_file(job_id):
+def ivle_download_file(job_id, wait_interval = 20):
     logger.info('Downloading file for job %s.', job_id)
     job = Job.query.get(job_id)
     try:
@@ -81,9 +81,10 @@ def ivle_download_file(job_id):
                 raise
     except CacheMutex, e:
         logger.debug('Lock conflict: lock - %s, message - %s', e.lock, e.value)
+        logger.debug('Delay by %d seconds', wait_interval)
         #wait, might have to retry?
         #countdown of 20 seconds
-        ivle_download_file.apply_async(args=[job_id], countdown=20)
+        ivle_download_file.apply_async(args=(job_id, wait_interval*2), countdown=wait_interval)
     except InvalidFile, e:
         logger.debug('Invalid file: file - %s', e)
         #delete cache entry
