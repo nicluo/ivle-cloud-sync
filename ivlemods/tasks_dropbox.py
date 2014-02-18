@@ -20,7 +20,7 @@ def wait_dropbox_job(job_id, time = 20):
     #update time of update, status 1 so it doesn't get queued again
     entry.status_update = datetime.now()
     entry.status = 1
-    file_copier_task.apply_async(args=[entry.job_id], countdown=time)
+    file_copier_task.apply_async(args=[entry.job_id, time], countdown=time)
 
 @celery.task(base=SqlAlchemyTask)
 def upload_dropbox_jobs():
@@ -97,8 +97,8 @@ def update_user_dropbox_quota(user_id):
     db_session.commit()
 
 @celery.task(base=SqlAlchemyTask)
-def file_copier_task(job_id):
-    fc = dist.FileCopier(job_id)
+def file_copier_task(job_id, time=10):
+    fc = dist.FileCopier(job_id, time * 2)
     fc.start()
 
 @celery.task(base=SqlAlchemyTask)

@@ -95,8 +95,9 @@ class FileProcessOverwrite():
         return self.return_rev
 
 class FileCopier():
-    def __init__(self, job_id):
+    def __init__(self, job_id, wait_interval=20):
         self.job_id = job_id
+        self.wait_interval = wait_interval
 
     def start(self):
         logger.info("FileCopier - Accept job(%s).", self.job_id)
@@ -172,7 +173,7 @@ class FileCopier():
             return
         except CacheMutex, e:
             logger.info('Lock conflict: lock - %s, message - %s', e.lock, e.value)
-            ivlemods.tasks_dropbox.wait_dropbox_job.delay(self.job_id, 20)
+            ivlemods.tasks_dropbox.wait_dropbox_job.delay(self.job_id, self.wait_interval)
             return
         except DropboxExceedQuota, e:
             logger.info('User has exceeded Dropbox quota. File: %s, Quota: %s', e.file_size, e.quota)
