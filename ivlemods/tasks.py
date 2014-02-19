@@ -86,6 +86,10 @@ def dropbox_login_resume_jobs(user_id):
         db_session.commit()
     upload_user_dropbox_jobs.delay(user_id)
 
+@celery.task(base=SqlAlchemyTask)
+def poll_ivle_modules_for_all_users():
+    group((poll_ivle_modules.s(user_id)) for user_id in [user_id for user_id, in User.query.values(User.user_id)])()
+
 #priority for new log-ins
 #calls task directly 
 @celery.task(base=SqlAlchemyTask)

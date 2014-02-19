@@ -26,6 +26,7 @@ def poll_ivle_folders(user_id):
     for module in modules:
         courseCode = module.course_code
         workbins = client.get('Workbins', CourseID=module.course_id, Duration=0)
+        logger.debug(workbins)
         for workbin in workbins['Results']:
             title = workbin['Title']
             args = {
