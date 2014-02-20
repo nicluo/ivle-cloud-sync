@@ -192,8 +192,7 @@ class Job(Base):
     cache = relationship("Cache",
                          primaryjoin = "Job.file_id == Cache.file_id",
                          foreign_keys = [file_id],
-                         remote_side = [Cache.file_id],
-                         backref = backref('jobs', lazy='dynamic'))
+                         remote_side = [Cache.file_id])
 
     def __init__(self, file_id, http_url, method, user_id, target_path, status=0):
         self.file_id = file_id
