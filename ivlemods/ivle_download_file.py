@@ -30,33 +30,43 @@ class NoLocalCopy(Exception):
 def ivle_check_file_downloaded(job_id):
     logger.info('Checking cache entries for job %s.', job_id)
     job = Job.query.get(job_id)
-    rows = Cache.query.filter(Cache.file_id == job.file_id).count()
-    logger.debug('Number of cache entries for file %s: %s', job.file_id, rows)
-    if not rows:
+    #rows = Cache.query.filter(Cache.file_id == job.file_id).one()
+    #logger.debug('Number of cache entries for file %s: %s', job.file_id, rows)
+
+    if not job.cache:
+        logger.debug('Cache entry not found - job %s', job_id)
+        #queue file download
         ivle_download_file.delay(job.job_id)
+        #trigger a wait to free the dropbox worker
         raise NoLocalCopy(job.job_id)
+
     else:
         try:
             validate_cache_entry(job.cache)
         except InvalidFile, e:
-            logger.debug('Invalid file: file - %s', e)
+            logger.debug('Invalid file: file - %s, Deleting cache entry', e)
             #delete cache entry
             db_session.delete(job.cache)
             db_session.commit()
+            #queue file download
             ivle_download_file.delay(job.job_id)
+            #trigger a wait to free the dropbox worker
             raise NoLocalCopy(job.job_id)
     return
 
 @celery.task(base=SqlAlchemyTask)
 def ivle_download_file(job_id, wait_interval = 20):
-    logger.info('Downloading file for job %s.', job_id)
+    logger.info('Checking and downloading file for job %s.', job_id)
     job = Job.query.get(job_id)
     try:
         if job.cache:
+            logger.debug(job.cache)
+            logger.debug('Validating job cache %s.', job_id)
             #check cache entry for errors
             validate_cache_entry(job.cache)
             return
         else:
+            logger.debug('Downloading for job cache %s.', job_id)
             #check mutex and wait
             try_lock(job.file_id, "file not cached, some other job is downloading, wait.")
             #mutex is yours
@@ -66,8 +76,7 @@ def ivle_download_file(job_id, wait_interval = 20):
                     #go ahead and download
                     if job.method == 'http':
                         path = 'cache/' + str(job.file_id)
-                        cache_file = get_cache_file(path)
-                        download_to_file_http(job.http_url, cache_file)
+                        download_to_file_http(job.http_url, path)
                         logger.debug("downloaded file to %s.", path)
                     #create cache entry
                     create_cache_entry(job)
@@ -79,6 +88,7 @@ def ivle_download_file(job_id, wait_interval = 20):
             except:
                 release_lock(job.file_id)
                 raise
+
     except CacheMutex, e:
         logger.debug('Lock conflict: lock - %s, message - %s', e.lock, e.value)
         logger.debug('Delay by %d seconds', wait_interval)
@@ -110,29 +120,27 @@ def validate_cache_entry(cache):
 
 def delete_file_if_exists(path):
     if os.path.exists(path):
+        logger.debug('File exists at %s', path)
         logger.debug("Cache - have to delete existing file at %s.", path)
         os.remove(path)
     return
 
 def check_file_exists_and_sized(path):
     if os.path.exists(path) and os.stat(path).st_size > 0:
+        logger.debug('File exists at %s', path)
         return True
     return False
 
-def get_cache_file(path):
-    ensure_directory(path) 
+def download_to_file_http(url, path):
+    ensure_directory(path)
     delete_file_if_exists(path)
-    out = open(path, 'wb')
-    return out
-
-def download_to_file_http(url, f):
     download = requests.get(url)
     download.raise_for_status()
-    logger.debug(download.headers)
+    with open(path, 'wb') as f:
+        logger.debug(download.headers)
 
-    #ensure proper, empty temp file for the cache to use
-    f.write(download.content)
-    f.close()
+        f.write(download.content)
+        f.close()
     return
 
 
