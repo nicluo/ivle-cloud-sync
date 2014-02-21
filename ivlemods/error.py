@@ -17,3 +17,11 @@ class CacheMutex(Exception):
         self.lock = lock
     def __str__(self):
         return repr(self.lock)
+
+class FolderNotSynced(Exception):
+    def __init__(self, user_id, file_id, folder_name):
+        self.user_id = user_id
+        self.file_id = file_id 
+        self.folder_name = folder_name
+    def __str__(self):
+        return repr(self.user_id)

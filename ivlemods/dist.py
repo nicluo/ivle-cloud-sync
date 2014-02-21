@@ -14,7 +14,7 @@ from ivlemods.database import db_session
 from ivlemods.models import User, Job, OnlineStore, IVLEFile, Cache
 import ivlemods.tasks_dropbox
 from ivlemods.task import SqlAlchemyTask
-from ivlemods.error import DropboxNoCredentials, CacheMutex, DropboxExceedQuota
+from ivlemods.error import DropboxNoCredentials, CacheMutex, DropboxExceedQuota, FolderNotSynced
 
 from ivlemods.lock import try_lock, release_lock
 from ivlemods.dropbox_session import SessionHandler
@@ -105,6 +105,18 @@ class FileCopier():
         self.job = Job.query.filter_by(job_id = self.job_id).first()
         if self.job == None:
             logger.warning('job does not exist anymore. Have you cleared the database but not the message queue?')
+            return
+
+        try:
+            #check that user still wants the file to be uploaded
+            if self.job.ivle_file.parent_folder.sync == False:
+                logger.warning('user does not want to sync this folder and download this file')
+                raise FolderNotSynced(self.job.user_id, self.job.ivle_file.parent_folder.name, self.job.job_id)
+        except FolderNotSynced, e:
+            logger.info('User has decided not to synce folder %s %s', e.file_id, e.folder_name)
+            self.job.status = 13
+            self.job.status_update = datetime.now()
+            db_session.commit()
             return
 
         logger.info("FileCopier - Preliminary checks for job id(%s) file id(%s) for User %s", self.job.job_id, self.job.file_id, self.job.user_id)
