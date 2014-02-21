@@ -101,6 +101,7 @@ class IVLEFile(Base):
     file_path = Column(String(256))
     file_name = Column(String(256))
     file_type = Column(String(8))
+    file_size = Column(Integer)
     upload_time = Column(DateTime)
     dropbox_queued = Column(DateTime)
     dropbox_uploaded_date = Column(DateTime)
@@ -128,6 +129,7 @@ class IVLEFile(Base):
         self.is_deleted = False
         self.upload_time = meta['upload_time']
         self.file_type = meta['file_type']
+        self.file_size = meta['file_size']
 
     def __repr__(self):
         return '<File %d %r owned by %s >' % (self.file_id, self.file_name, self.user_id)
