@@ -101,10 +101,21 @@ class FileCopier():
 
     def start(self):
         logger.info("FileCopier - Accept job(%s).", self.job_id)
-        #check that job still freaking exists
+
+        #get the job entry
         self.job = Job.query.filter_by(job_id = self.job_id).first()
+
+        #check that job still freaking exists
         if self.job == None:
             logger.warning('job does not exist anymore. Have you cleared the database but not the message queue?')
+            return
+
+        #check that file is not deleted in ivle
+        if self.job.ivle_file.is_deleted:
+            logger.info('job %s is deleted on ivle, discontinuing job', self.job.job_id)
+            self.job.status = 14
+            self.job.status_update = datetime.now()
+            db_session.commit()
             return
 
         try:
@@ -113,7 +124,7 @@ class FileCopier():
                 logger.warning('user does not want to sync this folder and download this file')
                 raise FolderNotSynced(self.job.user_id, self.job.ivle_file.parent_folder.name, self.job.job_id)
         except FolderNotSynced, e:
-            logger.info('User has decided not to synce folder %s %s', e.file_id, e.folder_name)
+            logger.info('User has decided not to sync folder %s %s', e.file_id, e.folder_name)
             self.job.status = 13
             self.job.status_update = datetime.now()
             db_session.commit()
