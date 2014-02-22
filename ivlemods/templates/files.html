@@ -8,32 +8,65 @@
   {% if modules.values() %}
     <h2>Folders to Sync</h2>
      {% for module in modules.values() %}
+     {# nesting and close variables are to iteratively generate folder tree #}
+     {% set nesting = 1 %}
+     {% set close = 0 %}
       <div data-role="collapsible">
         {# workbin title #}
         <h3 class=" ui-collapsible-heading"><span class="workbin-heading"></span><a href="#" class="ui-collapsible-heading-toggle  ">{{ module[0]['directory'] }}<span class="ui-collapsible-heading-status"> click to collapse contents</span></a></h3>
         <div class="ui-body-inherit" data-inset="false">
           {% for directory in module  %}
-          {# folders #}
+            {# folders #}
             {% if not loop.first %}
-          <ul data-nest="{{ module['nesting_level'] }}" data-role="listview" class="ui-listview ui-corner-all ui-shadow">
-              <li class="ui-li-static ui-body-inherit ui-first-child">
-                {% if files[directory['id']] %}
-                <span class="folder-name-open">{{ directory['directory'] }}</span>
-                - {{ files[directory['id']]|length }} files
-                <ul data-nest="{{ directory['nesting_level'] }}" data-role="listview" data-inset="true" class="ui-listview  ">
-                {% for file in files[directory['id']] %}
-                  <li class="ui-li-static ui-body-inherit ui-first-child">
-                    {{ file.name }}
-                    {{ file.job }}
-                  </li>
-                {% endfor %}
-                </ul>
-                {% else %}
-                <span class="folder-name-close">{{ directory['directory'] }}</span>
-                <br><br>
+
+              {# count closing tags for nesting #}
+              {% if module[loop.index0+1] %}
+                {# default is to close if nesting level doesnt change #}
+                {% set close = 1 %}
+                {# do not close if nesting level goes up #}
+                {% if module[loop.index0+1]['nesting_level'] > nesting %}
+                  {% set close = 0 %}
+                {% elif module[loop.index0+1]['nesting_level'] < nesting %} 
+                {# close the difference when nesting level goes down #}
+                  {% set close = module[loop.index0+1]['nesting_level']-nesting %}
                 {% endif %}
-              </li>
-          </ul>
+                {# sets nesting level for the next iteration #}
+                {% set nesting = module[loop.index0+1]['nesting_level'] %}
+              {% else %}
+              {# end of module. close all open lists#}
+                  {% set close = nesting%}
+              {% endif %}
+
+              {# begin folder output #}
+              <ul data-nest="{{ directory['nesting_level'] }}" data-role="listview" data-inset="true" class="ui-listview ui-corner-all ui-shadow">
+                <li class="ui-li-static ui-body-inherit ui-first-child">
+                  {% if files[directory['id']] or close == 0 %}
+                  {# print files information in the folder#}
+                  <span class="folder-name-open">{{ directory['directory'] }}</span>
+                  - {{ files[directory['id']]|length }} files
+                  <ul data-nest="{{ directory['nesting_level'] }}" data-role="listview" data-inset="true" class="ui-listview  ">
+                    {% for file in files[directory['id']] %}
+                      <li class="ui-li-static ui-body-inherit ui-first-child">
+                        {% if file.job.status == 2 or file.job.status == 3 %} <i class="icon-dropbox"></i> 
+                        {% elif file.job.status == 10 %}  <i class="icon-minus-circled"></i>  
+                        {% elif file.job.status == 1 %}  <i class="icon-hash"></i>  {% endif %}
+                        {{ file.name }} <br>
+                      </li>
+                    {% endfor %}
+                  </ul>
+                  {% else %}
+                  {# print folder information for empty folders#}
+                  <span class="folder-name-close">{{ directory['directory'] }}</span>
+                  <br><br>
+                  {% endif %}
+              {# end folder output #}
+
+
+              {# closing tags output #}
+              {% for number in range(close) %}
+                </li>
+                </ul>
+              {% endfor %}
             {% endif %}
           {% endfor %}
         </div>
