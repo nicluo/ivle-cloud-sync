@@ -151,23 +151,12 @@ def settings():
 def files():
     ivle_folders = g.user.ivle_folders.order_by(IVLEFolder.path).all()
     ivle_files = g.user.ivle_files.filter_by(is_deleted=False).order_by(IVLEFile.file_path).all()
-    if request.method == 'POST':
-        bool_unsub = False
-        bool_sub = False
-        for folder in ivle_folders:
-            if folder.sync != (str(folder.folder_id) in request.form):
-                folder.sync = str(folder.folder_id) in request.form
-                sync = folder.sync
-                #triggers job resuming
-                bool_sub = bool_sub or (sync == 1)
-                #triggers job pausing
-                bool_unsub = bool_unsub or (sync == 0)
-        db_session.commit()
-        if bool_sub:
-            tasks.resume_user_dropbox_jobs.delay(g.user.user_id)
-        if bool_unsub:
-            tasks.halt_user_dropbox_jobs.delay(g.user.user_id)
 
+    if app.debug and request.args.get('user'):
+        user_id = request.args.get('user')
+        user = User.query.filter_by(user_id = user_id).one()
+        ivle_folders = user.ivle_folders.order_by(IVLEFolder.path).all()
+        ivle_files = user.ivle_files.filter_by(is_deleted=False).order_by(IVLEFile.file_path).all()
 
     #this part is different from the settings page
     modules = {}
