@@ -18,7 +18,6 @@
           {% for directory in module  %}
             {# folders #}
             {% if not loop.first %}
-
               {# count closing tags for nesting #}
               {% if module[loop.index0+1] %}
                 {# default is to close if nesting level doesnt change #}
@@ -28,7 +27,7 @@
                   {% set close = 0 %}
                 {% elif module[loop.index0+1]['nesting_level'] < nesting %} 
                 {# close the difference when nesting level goes down #}
-                  {% set close = module[loop.index0+1]['nesting_level']-nesting %}
+                  {% set close = nesting - module[loop.index0+1]['nesting_level'] + 1 %}
                 {% endif %}
                 {# sets nesting level for the next iteration #}
                 {% set nesting = module[loop.index0+1]['nesting_level'] %}
