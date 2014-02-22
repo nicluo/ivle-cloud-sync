@@ -103,7 +103,14 @@ def associate():
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required
 def settings():
+
     ivle_folders = g.user.ivle_folders.order_by(IVLEFolder.path).all()
+
+    if app.debug == True and request.args.get('user'):
+        user_id = request.args.get('user')
+        user = User.query.filter_by(user_id = user_id).one()
+        ivle_folders = user.ivle_folders.order_by(IVLEFolder.path).all()
+
     if request.method == 'POST':
         bool_unsub = False
         bool_sub = False
@@ -152,7 +159,7 @@ def files():
     ivle_folders = g.user.ivle_folders.order_by(IVLEFolder.path).all()
     ivle_files = g.user.ivle_files.filter_by(is_deleted=False).order_by(IVLEFile.file_path).all()
 
-    if app.debug and request.args.get('user'):
+    if app.debug == True and request.args.get('user'):
         user_id = request.args.get('user')
         user = User.query.filter_by(user_id = user_id).one()
         ivle_folders = user.ivle_folders.order_by(IVLEFolder.path).all()
