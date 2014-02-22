@@ -31,9 +31,21 @@
     font-style: normal;
 }
 
+
+@font-face {
+  font-family: 'Fontello';
+  src: url('font/fontello.eot?72443732');
+  src: url('font/fontello.eot?72443732#iefix') format('embedded-opentype'),
+       url('font/fontello.woff?72443732') format('woff'),
+       url('font/fontello.ttf?72443732') format('truetype'),
+       url('font/fontello.svg?72443732#fontello') format('svg');
+  font-weight: normal;
+  font-style: normal;
+}
+
 .ui-checkbox label:before {
-  content: "\f021";
-  font-family: FontAwesome;
+  content: "\e803";
+  font-family: Fontello;
   font-weight: normal;
 }
 
@@ -47,6 +59,44 @@
 
 .ui-btn[data-nest="3"] {
   text-indent: 48px;
+}
+
+.ui-listview {
+  text-indent: 0px;
+}
+
+.workbin-heading:before {
+  content: "\e809";
+  font-family: Fontello;
+  font-weight: normal;
+  margin-left:20px;
+  margin-right:10px;
+}
+
+.folder-name-open:before {
+  content: "\e803";
+  font-family: Fontello;
+  font-weight: normal;
+  margin-right:4px
+}
+
+.folder-name-close:before {
+  content: "\e802";
+  font-family: Fontello;
+  font-weight: normal;
+  margin-right:4px
+}
+
+.ui-listview[data-nest="1"] {
+  margin-left: 22px;
+}
+
+.ui-listview[data-nest="2"] {
+  margin-left: 38px;
+}
+
+.ui-listview[data-nest="3"] {
+  margin-left: 54px;
 }
 
 .img-standard {
