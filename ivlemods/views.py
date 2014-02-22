@@ -11,7 +11,7 @@ from ivlemods.poll_ivle_folders import poll_ivle_folders
 from ivlemods.poll_ivle_modules import poll_ivle_modules
 from ivlemods.tasks import one_task_on_user_flask
 from ivlemods.tasks_dropbox import count_dropbox_jobs
-from ivlemods.models import IVLEFolder, User
+from ivlemods.models import IVLEFolder, IVLEFile, User
 
 import analytics
 analytics.init('***REMOVED***', flush_at=1)
@@ -145,6 +145,64 @@ def settings():
         if len(modules[module_name]) == folders_sync_count[module_name] + 1:
             modules[module_name][0]['sync'] = True
     return render_template('settings.html', user=g.user, modules=modules)
+
+@app.route('/files', methods=['GET', 'POST'])
+@login_required
+def files():
+    ivle_folders = g.user.ivle_folders.order_by(IVLEFolder.path).all()
+    ivle_files = g.user.ivle_files.filter_by(is_deleted=False).order_by(IVLEFile.file_path).all()
+    if request.method == 'POST':
+        bool_unsub = False
+        bool_sub = False
+        for folder in ivle_folders:
+            if folder.sync != (str(folder.folder_id) in request.form):
+                folder.sync = str(folder.folder_id) in request.form
+                sync = folder.sync
+                #triggers job resuming
+                bool_sub = bool_sub or (sync == 1)
+                #triggers job pausing
+                bool_unsub = bool_unsub or (sync == 0)
+        db_session.commit()
+        if bool_sub:
+            tasks.resume_user_dropbox_jobs.delay(g.user.user_id)
+        if bool_unsub:
+            tasks.halt_user_dropbox_jobs.delay(g.user.user_id)
+
+
+    #this part is different from the settings page
+    modules = {}
+    folders_sync_count = {}
+    for folder in ivle_folders:
+        directories = folder.path.split('/')
+        module_name = directories[0]
+        if module_name not in modules:
+            modules[module_name] = [{
+                                        'directory': module_name,
+                                        'nesting_level': 0
+                                    }]
+            folders_sync_count[module_name] = 0
+        modules[module_name].append({
+            'directory': directories[-1],
+            'id': folder.folder_id,
+            'nesting_level': len(directories) - 1,
+            'sync': folder.sync
+        })
+        if folder.sync:
+            folders_sync_count[module_name] += 1
+
+    files = {}
+    for ivle_file in ivle_files:
+        if ivle_file.parent_folder.folder_id not in files:
+            files[ivle_file.parent_folder.folder_id] = []
+        files[ivle_file.parent_folder.folder_id].append({
+            'name': ivle_file.file_name,
+            'id': ivle_file.file_id,
+            'job': ivle_file.jobs.first()
+            })
+    for module_name in modules:
+        if len(modules[module_name]) == folders_sync_count[module_name] + 1:
+            modules[module_name][0]['sync'] = True
+    return render_template('files.html', user=g.user, modules=modules, files=files)
 
 
 @app.route('/auth/dropbox/login')
