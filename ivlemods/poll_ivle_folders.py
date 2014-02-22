@@ -86,6 +86,9 @@ def exploreFolders(json, args):
 
             db_file = user.ivle_files.filter_by(ivle_id = file_id)
             if db_file.count():
+                #fix for getting file_size
+                if not db_file.first().file_size:
+                    db_file.update({'file_size' : file['FileSize']}, synchronize_session=False)
                 db_file.update({'checked' : datetime.now()}, synchronize_session=False)
             else:
                 new_ivle_file = IVLEFile({'user_id': meta['user_id'],\
@@ -96,6 +99,7 @@ def exploreFolders(json, args):
                                           'file_path': meta['path'],\
                                           'file_name': file['FileName'],\
                                           'file_type': file['FileType'],\
+                                          'file_size': file['FileSize'],\
                                           'upload_time': datetime.strptime(file['UploadTime_js'][:19], "%Y-%m-%dT%H:%M:%S")})
                 db_session.add(new_ivle_file)
                 new += 1

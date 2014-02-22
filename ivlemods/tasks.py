@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 def ivle_workbin_to_dropbox_job(user_id, duration=0, status=0):
     logger.info("Populating dropbox jobs for user %s.", user_id)
     user = User.query.get(user_id)
+
     if user.workbin_checked < datetime.now() - timedelta(minutes=duration):
         user.workbin_checked = datetime.now()
         db_session.commit()
@@ -34,6 +35,12 @@ def ivle_workbin_to_dropbox_job(user_id, duration=0, status=0):
                                            ~IVLEFile.is_deleted).all()
 
         for file in new_files:
+            #make sure that the file to be queued has a filesize and is less than 100mb
+            if not file.file_size or file.file_size > 104857600:
+                logger.info('file %s is larger than 100mb, skipping', file.file_name)
+                continue
+
+
             db_session.add(Job(file.ivle_id,\
                            client.build_download_url(file.ivle_id),\
                            'http',\
