@@ -125,7 +125,8 @@ class FileCopier():
                 raise FolderNotSynced(self.job.user_id, self.job.ivle_file.parent_folder.name, self.job.job_id)
         except FolderNotSynced, e:
             logger.info('User has decided not to sync folder %s %s', e.file_id, e.folder_name)
-            self.job.status = 13
+            #status code 6 is for paused jobs due to sync options
+            self.job.status = 6
             self.job.status_update = datetime.now()
             db_session.commit()
             return
