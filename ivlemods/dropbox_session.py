@@ -7,7 +7,7 @@ from datetime import datetime
 from ivlemods import app
 
 from ivlemods.database import db_session
-from ivlemods.error import DropboxNoCredentials
+from ivlemods.error import DropboxNoCredentials, DropboxExceedQuota
 from ivlemods.models import User
 import ivlemods.tasks_dropbox
 
@@ -45,5 +45,9 @@ class SessionHandler():
                         db_session.commit()
                         #raise no credentials error
                         raise DropboxNoCredentials([user.dropbox_key, user.dropbox_secret])
+
+                    if e.status == 507:
+                        raise DropboxExceedQuota(self.user_id)
+
                     raise e
         return retry

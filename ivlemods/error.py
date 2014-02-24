@@ -5,9 +5,8 @@ class DropboxNoCredentials(Exception):
         return repr(self.value)
 
 class DropboxExceedQuota(Exception):
-    def __init__(self, file_size, quota):
-        self.file_size = file_size 
-	self.quota = quota
+    def __init__(self, user_id):
+        self.user_id = user_id 
     def __str__(self):
         return 'User has run out of Dropbox space'
 

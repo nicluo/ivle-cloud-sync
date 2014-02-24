@@ -195,6 +195,14 @@ class FileCopier():
             self.job.status_update = datetime.now()
             db_session.commit()
             return
+        except DropboxExceedQuota, e:
+            logger.warning("FileCopier - Dropbox Exceed Quota")
+            logger.warning(e.user_id)
+            #job status 13 is for jobs that exceed user quota
+            self.job.status = 13
+            self.job.status_update = datetime.now()
+            db_session.commit()
+            return
         except CacheMutex, e:
             logger.info('Lock conflict: lock - %s, message - %s', e.lock, e.value)
             ivlemods.tasks_dropbox.wait_dropbox_job.delay(self.job_id, self.wait_interval)
