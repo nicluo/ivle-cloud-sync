@@ -116,6 +116,12 @@ def one_task_for_them_all():
     return
 
 @celery.task(base=SqlAlchemyTask)
+def one_task_for_them_all_no_callback():
+    logger.info('Running One Task for All Users (No Callback)');
+    (group((poll_ivle_modules.s(user_id) | poll_ivle_folders.si(user_id) | queue_user_dropbox_jobs.s(user_id)) for user_id in [user_id for user_id, in User.query.values(User.user_id)]) )()
+    return
+
+@celery.task(base=SqlAlchemyTask)
 def queue_user_dropbox_jobs(change, user_id):
     (ivle_workbin_to_dropbox_job.s(user_id) | upload_user_dropbox_jobs.si(user_id))()
     retry_user_dropbox_jobs.apply_async((user_id,))

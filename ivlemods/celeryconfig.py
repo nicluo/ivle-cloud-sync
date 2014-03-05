@@ -1,12 +1,18 @@
 from __future__ import absolute_import
 
 from celery.schedules import crontab
+from datetime import timedelta
 
 BROKER_URL = 'redis://localhost:6379/0'
 BROKER_TRANSPORT_OPTIONS = {'visibility_timeout': 3600}
 CELERY_IMPORTS = ['ivlemods.tasks']
 # CELERY_TIMEZONE = 'Singapore'
 CELERYBEAT_SCHEDULE = {
+    'one-task-every-20-minutes': {
+        'task': 'ivlemods.tasks.one_task_for_them_all_no_callback',
+        'schedule': timedelta(minutes=20),
+        'args': ()
+        },
     }
 CELERY_ROUTES = {
     'ivlemods.poll_ivle_folders.poll_ivle_folders': {'queue': 'ivle'},
