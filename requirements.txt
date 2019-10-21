@@ -4,7 +4,7 @@ Mako==0.9.1
 MarkupSafe==0.18
 PyMySQL==0.6.1
 SQLAlchemy==0.9.3
-Werkzeug==0.9.4
+Werkzeug==0.15.3
 alembic==0.6.3
 amqp==1.4.3
 analytics-python==0.4.4
