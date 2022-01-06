@@ -11,7 +11,7 @@ analytics-python==0.4.4
 anyjson==0.3.3
 argparse==1.2.1
 billiard==3.3.0.16
-celery==3.1.9
+celery==5.2.2
 dropbox==2.0.0
 itsdangerous==0.23
 kombu==3.0.12
